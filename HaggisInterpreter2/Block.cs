@@ -191,14 +191,19 @@ namespace HaggisInterpreter2
                                 else
                                     i++;
 
-                                if(arg_sb.Length == 0)
+                                if (arg_sb.Length == 0)
                                     arg_sb.Append(expr[i - 1]);
                                 else
-                                    arg_sb.Append($" {expr[i - 1]}");
+                                {
+                                    if(double.TryParse(expr[i - 1], out double _))
+                                        arg_sb.Append(expr[i - 1]);
+                                    else
+                                        arg_sb.Append($" {expr[i - 1]}");
+                                }
 
                                 if (expr[i] == "," || i == expr.Length - 1)
                                 {
-                                    args.Add(arg_sb.ToString());
+                                    args.Add(arg_sb.ToString().Trim());
                                     arg_sb.Clear();
                                     i++; continue;
                                 }

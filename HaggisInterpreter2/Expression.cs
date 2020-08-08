@@ -74,11 +74,14 @@ namespace HaggisInterpreter2
                            continue;
                     }
 
-                    if ((int)iter[i] == 34)
+                    if ((int)iter[i] == 34 || (int)iter[i] == 39)
                     {
                         i++;
-                        while ((int)iter[i] != 34)
+                        while ((int)iter[i] != 34 || (int)iter[i] != 39)
                         {
+                            if ((int)iter[i] == 34 || (int)iter[i] == 39)
+                                break;
+
                             sb.Append(iter[i]);
                             i++;
                         }
@@ -111,14 +114,64 @@ namespace HaggisInterpreter2
                         {
                             if (validOperations.Contains(iter[i]))
                             {
-                                if(sb.Length > 0)
-                                    output.Add(sb.ToString());        
-                                
-                                output.Add(iter[i].ToString());
-                                sb.Clear();
+                                // Deal with numbers with negative sign
+                                if (iter[i] == '-')
+                                {
+                                    if (sb.Length > 0)
+                                        output.Add(sb.ToString());
+                                    sb.Clear();
+                                    sb.Append(iter[i]);
+                                    i++;
+                                    while (i < (iter.Length - 1))
+                                    {
+                                        if (char.IsDigit(iter[i]) || iter[i] == '.')
+                                        { sb.Append(iter[i]); }
+                                        i++;
+                                    }
+
+                                    if (sb.ToString() == "-")
+                                    {
+                                        if (iter[i - 1] == ' ') 
+                                        {
+                                            output.Add(sb.ToString());
+                                            output.Add(iter[i].ToString());
+                                        }
+                                        else 
+                                        { 
+                                            sb.Append(iter[i]);
+                                            output.Add(sb.ToString());
+                                        }
+                                    }
+                                    else
+                                    {
+                                        if (sb.Length > 0)
+                                            output.Add(sb.ToString());
+                                        output.Add(iter[i].ToString());
+                                    }
+
+                                    sb.Clear();
+                                }
+                                else
+                                {
+                                    if (sb.Length > 0)
+                                        output.Add(sb.ToString());
+
+                                    output.Add(iter[i].ToString());
+                                    sb.Clear();
+                                }
                             }
                             else
+                            {
+                                // There is a chance that a ',' could be here
+                                if(iter[i] == ',')
+                                {
+                                    if (sb.Length > 0)
+                                        output.Add(sb.ToString());
+                                    sb.Clear();
+                                }
+
                                 sb.Append(iter[i]);
+                            }
                         }
                     }
                 }
@@ -647,9 +700,12 @@ namespace HaggisInterpreter2
         {
             FuncBlock fb = block as FuncBlock;
             FuncMetaData meta;
+            bool isOverride = false;
+
             try
             {
                 meta = availableFunctions.First(x => x.Name == fb.FunctionName);
+                isOverride = availableFunctions.Count(x => x.Name == fb.FunctionName) > 1;
             }
             catch (Exception)
             {
@@ -664,8 +720,9 @@ namespace HaggisInterpreter2
 
             if(!(fb.Args is null))
             {
-                if(fb.Args.Length != meta.ArgValues.Count())
-                    Interpreter.Error($"NON-MATCHING PARAMETERS, EXPECTED {meta.ArgValues.Count()} BUT GOT {fb.Args.Length} INSTEAD", meta.Name);
+                if (!(meta.ArgValues is null))
+                    if (fb.Args.Length != meta.ArgValues.Count())
+                        Interpreter.Error($"NON-MATCHING PARAMETERS, EXPECTED {meta.ArgValues.Count()} BUT GOT {fb.Args.Length} INSTEAD", meta.Name);
 
                 if (fb.Args.Length == 1)
                 {
@@ -678,6 +735,18 @@ namespace HaggisInterpreter2
                         val = PerformExpression(vals, args, true);
                     else
                         val = new Value(args, true);
+
+                    if(isOverride)
+                    {
+                        try
+                        {
+                            meta = availableFunctions.First(x => x.Name == fb.FunctionName && x.ArgTypes[0] == val.Type.ToString());
+                        }
+                        catch (Exception)
+                        {
+                            Interpreter.Error($"THIS FUNCTION DOESN'T HAVE AN OVERRIDE AVAILABLE FOR THE DATA TYPE '{meta.ArgTypes[0]}' FOR {fb.FunctionName}", val.ToString());
+                        }
+                    }
 
                     if (val.Type.ToString() != meta.ArgTypes[0])
                         Interpreter.Error($"WRONG PARAMETER DATA TYPE OF {meta.ArgTypes[0]}, EXCEPTED {val.Type} FOR {fb.FunctionName}", val.ToString());
@@ -769,11 +838,19 @@ namespace HaggisInterpreter2
 
         private static FuncMetaData[] availableFunctions = new FuncMetaData[]
         {
+            // STRING PSEUDOCODE FUNCTIONS
             new FuncMetaData { Name = "Title", type = FuncMetaData.Type.FUNCTION, ArgTypes = new string[] { "STRING" } },
             new FuncMetaData { Name = "Trim", type = FuncMetaData.Type.FUNCTION, ArgTypes = new string[] { "STRING" } },
             new FuncMetaData { Name = "Upper", type = FuncMetaData.Type.FUNCTION, ArgTypes = new string[] { "STRING" } },
             new FuncMetaData { Name = "Lower", type = FuncMetaData.Type.FUNCTION, ArgTypes = new string[] { "STRING" } },
 
+            // CONVERSION PSEUDOCODE FUNCTIONS (with overrides)
+            new FuncMetaData { Name = "INT", type = FuncMetaData.Type.FUNCTION, ArgTypes = new string[] { "STRING" } },
+            new FuncMetaData { Name = "INT", type = FuncMetaData.Type.FUNCTION, ArgTypes = new string[] { "REAL" } },
+            new FuncMetaData { Name = "INT", type = FuncMetaData.Type.FUNCTION, ArgTypes = new string[] { "BOOLEAN" } },
+
+
+            // DATE PSEUDOCODE FUNCTIONS
             new FuncMetaData { Name = "DAY", type = FuncMetaData.Type.FUNCTION, ArgTypes = new string[0]},
             new FuncMetaData { Name = "MONTH", type = FuncMetaData.Type.FUNCTION, ArgTypes = new string[0]},
             new FuncMetaData { Name = "YEAR", type = FuncMetaData.Type.FUNCTION, ArgTypes = new string[0]},

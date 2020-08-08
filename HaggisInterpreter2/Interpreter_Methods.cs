@@ -16,7 +16,6 @@ namespace HaggisInterpreter2
             return (count > 1);
         }
 
-
         private Value? RunMacro (Value call, bool returnValueBack)
         {
             Value funcReturn = new Value();
@@ -53,16 +52,39 @@ namespace HaggisInterpreter2
                         if (string.IsNullOrEmpty(_line))
                             continue;
 
-                        if(fn_ref.type == FuncMetaData.Type.FUNCTION)
-                        if(_line.Trim().StartsWith("RETURN"))
-                        {
-                            Exit = true;
-                            funcReturn = variables["RETURNVAL"];
-                            variables.Remove("RETURNVAL");
-                            break;
-                        }
+                        if (fn_ref.type == FuncMetaData.Type.FUNCTION) 
+                        { 
+                            if (_line.Trim().StartsWith("RETURN") || variables.ContainsKey("RETURNVAL"))
+                            {
+                                Exit = true;
 
-                        Exit = _execute(_line.Split());
+                                // There is a chance where a function may only have a one line return
+                                // In this case, we need to call first
+                                if(!variables.ContainsKey("RETURNVAL"))
+                                    Exit = _execute(_line.Split());
+
+                                funcReturn = variables["RETURNVAL"];
+                                variables.Remove("RETURNVAL");
+
+                                if(funcReturn.Type != fn_ref.returnType)
+                                {
+                                    try
+                                    {
+                                        // Safe covert back to desired data type
+                                        funcReturn = funcReturn.Convert(fn_ref.returnType);
+                                    }
+                                    catch (Exception)
+                                    {
+                                        // Problem - oh well :(
+                                        Error($"FUNCTION IS SET TO RETURN '{fn_ref.returnType}' BUT GOT '{funcReturn.Type}' WITH RETURN!", _line);
+                                    }
+                                }
+
+                                break;
+                            }
+                        }
+                        
+                        Exit = _execute(_line.Split());                
                     }
                 }
                 _line = null;
@@ -405,6 +427,15 @@ namespace HaggisInterpreter2
 
             Column = GetColumnFault(express);
             var exp = Expression.PerformExpression(this.variables, express);
+
+            if(!(exp.OTHER is null))
+            if(exp.OTHER.StartsWith("FN-"))
+            {
+                var r = RunMacro(exp, true);
+
+                if (!(r is null))
+                    exp = (Value)r;
+            }
 
             if (_flags.DebugSendRequests)
                 Log($"LINE {line}: {exp}");

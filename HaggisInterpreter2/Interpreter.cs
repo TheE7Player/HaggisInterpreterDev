@@ -38,10 +38,10 @@ namespace HaggisInterpreter2
 
         public static int[] errorArea { private set; get; }
 
-        private readonly string[] validTypes = {"INTEGER", "CHAR", "BOOLEAN", "REAL", "STRING"};
+        private readonly string[] validTypes = {"INTEGER", "CHARACTER", "BOOLEAN", "REAL", "STRING"};
         private readonly Dictionary<string, dynamic> DefaultVal = new Dictionary<string, dynamic>{
             {"INTEGER", 0 },
-            {"CHAR", ' ' },
+            {"CHARACTER", ' ' },
             {"BOOLEAN", false },
             {"REAL", 0.0 },
             {"STRING", string.Empty }
