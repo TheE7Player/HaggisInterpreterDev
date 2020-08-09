@@ -157,7 +157,8 @@ namespace HaggisInterpreter2
                             List<string> args = new List<string>();
                             string parameters = string.Join(" ", expr);
                             int paramStart = parameters.IndexOf('(')+1;
-                            parameters = parameters.Substring(paramStart, (parameters.Length - paramStart) - 1).Trim();
+                            int paramEnd = parameters.LastIndexOf(')');
+                            parameters = parameters.Substring(paramStart, paramEnd - paramStart).Trim();
 
                             var new_arr = Expression.Evaluate(parameters);
                             char[] fix;
@@ -186,8 +187,19 @@ namespace HaggisInterpreter2
                             var arg_sb = new StringBuilder();
                             while (i < max_len)
                             {
-                                if (expr[i] == ")")
-                                    break;
+                                if (expr[i] == ")")                                                        
+                                {
+                                    if (!(i == expr.Length - 1 || Expression.validOperations.Contains((expr[i + 1][0]))))
+                                        continue;
+
+                                    if(arg_sb.Length > 0)
+                                    {
+                                        args.Add(arg_sb.ToString().Trim());
+                                        arg_sb.Clear();
+                                        i++;
+                                    }
+                                    break; 
+                                }
                                 else
                                     i++;
 
@@ -235,6 +247,7 @@ namespace HaggisInterpreter2
 
                 // Get the value type
                 Value _val = new Value(expr[i], true);
+
                 string op = string.Empty;
                 // Get the binary operator (if any)
                 if (CanLookAhead(i + 1, max_len))
@@ -263,7 +276,7 @@ namespace HaggisInterpreter2
                 }
 
                 // Append the op block itself it there isnt (Could be caused by a function etc)
-                if(object.ReferenceEquals(op, string.Empty) && Expression.validOperations.Contains(_val.ToString()[0]))
+                if(object.ReferenceEquals(op, string.Empty) && Expression.validOperations.Contains(_val.ToString()[0]) && i != expr.Length - 1)
                 {
                     char subject = _val.ToString()[0];
                     if ((subject == '(' || subject == ')') && expr[i - 1] != "&")
@@ -276,26 +289,43 @@ namespace HaggisInterpreter2
                 // Amend the information now
                 BlockType bType = BlockType.Literal;
 
-                if(vals.ContainsKey((op != String.Empty) ? expr[i-1] : expr[i]))
-                    bType = BlockType.Variable;
-                else
+                if (!(vals is null))
                 {
-                    if(_val.Type == ValueType.STRING || _val.Type == ValueType.CHARACTER)
-                        bType = BlockType.Text;
-
-                    if (expr[i].Length == 1 && _val.Type == ValueType.CHARACTER && expr[i - 1] != "&")
-                        if (Expression.validOperations.Contains(_val.CHARACTER) && op is null)
-                            bType = BlockType.BinOp;
+                    if (vals.ContainsKey((op != String.Empty) ? expr[i - 1] : expr[i]))
+                        bType = BlockType.Variable;
                 }
 
+                if ((_val.Type == ValueType.STRING || _val.Type == ValueType.CHARACTER) && bType != BlockType.Variable)
+                    bType = BlockType.Text;
+
+                // Check 1
+                if((i - 1) > 1)
+                if (expr[i].Length == 1 && _val.Type == ValueType.CHARACTER && expr[i - 1] != "&")
+                {
+                    if (Expression.validOperations.Contains(_val.CHARACTER) && op is null)
+                        bType = BlockType.BinOp;
+                }
+
+                // Check 2
+                if (expr[i].Length == 1 && Expression.validOperations.Contains(_val.ToString()[0]))
+                    bType = BlockType.BinOp;
+                
 
                 if (Expression.validComparisons.Contains(expr[i]))
                 {
+                    int safeIndex = (i + 1 < expr.Length - 1) ? i + 1 : i;
+
+                    if(safeIndex == expr.Length - 1)
+                    {
+                        bType = BlockType.Text;
+                    }
+                    else
                     try
                     {
                         if (!(_list[_list.Count - 1].GetType().Name == "FuncBlock"))
                         {
-                            _list.Add(new ConditionBlock { blockType = BlockType.Expression, Value = Value.Zero, CompareOp = op, Left = _val, Right = new Value(expr[i + 1], true), OrderLevel = orderLevel, OrderNumber = _list.Count });
+                            
+                            _list.Add(new ConditionBlock { blockType = BlockType.Expression, Value = Value.Zero, CompareOp = op, Left = _val, Right = new Value(expr[safeIndex], true), OrderLevel = orderLevel, OrderNumber = _list.Count });
                             i += 1;
                             if (CanLookAhead(i + 1, max_len))
                             {
@@ -312,7 +342,7 @@ namespace HaggisInterpreter2
                     }
                     catch (Exception e)
                     {
-                        _list.Add(new ConditionBlock { blockType = BlockType.Expression, Value = Value.Zero, CompareOp = op, Left = _val, Right = new Value(expr[i + 1], true), OrderLevel = orderLevel, OrderNumber = _list.Count });
+                        _list.Add(new ConditionBlock { blockType = BlockType.Expression, Value = Value.Zero, CompareOp = op, Left = _val, Right = new Value(expr[safeIndex], true), OrderLevel = orderLevel, OrderNumber = _list.Count });
                         i += 1;
                         if (CanLookAhead(i + 1, max_len))
                         {

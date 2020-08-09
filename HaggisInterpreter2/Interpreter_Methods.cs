@@ -306,8 +306,6 @@ namespace HaggisInterpreter2
         /// <param name="isGlobal">True if 'DECLEAR', False if 'SET'</param>
         private void Declear(string[] information, bool isGlobal)
         {
-            if (variables.ContainsKey(information[1]))
-                Interpreter.Error($"VARIABLE {information[1]} ALREADY EXISTS/DECLARED", information[1]);
 
             if (isGlobal)
             {
@@ -365,6 +363,15 @@ namespace HaggisInterpreter2
                 }
 
                 // Now we assign it
+
+                if (variables.ContainsKey(information[1])) 
+                {
+                    var t = variables[information[1]].Type;
+
+                    if( t != value.Type )
+                        Interpreter.Error($"VARIABLE {information[1]} ALREADY EXISTS/DECLARED", information[1]); 
+                }
+
                 variables.Add(var_name, value);
                 SendSocketMessage("variable_decl", $"{var_name}|{value}");
             }
@@ -396,6 +403,14 @@ namespace HaggisInterpreter2
                         }
                     }
 
+                    if (variables.ContainsKey(information[1]))
+                    {
+                        var t = variables[information[1]].Type;
+
+                        if (t != result.Type)
+                            Interpreter.Error($"VARIABLE {information[1]} ALREADY EXISTS/DECLARED", information[1]);
+                    }
+
                     variables.Add(name, new Value(result));
 
                     SendSocketMessage("variable_decl", $"{name}|{result}");
@@ -403,6 +418,13 @@ namespace HaggisInterpreter2
                 }
                 else
                 {
+                    if (variables.ContainsKey(name))
+                    {
+                        var t = variables[name].Type;
+
+                        if (t != result.Type)
+                            Interpreter.Error($"VARIABLE {information[1]} ALREADY EXISTS/DECLARED", information[1]);
+                    }
                     variables[name] = new Value(result);
                     SendSocketMessage("variable_decl", $"{name}|{result}");
                     name = null; express = null;
@@ -414,7 +436,7 @@ namespace HaggisInterpreter2
         {
             string[] ex = Expression.Evaluate(express).Select(f=>f.Trim()).ToArray();
 
-            bool endsCorrectly = (ex[ex.Length - 2] == "TO" && ex[ex.Length - 1] == "DISPLAY");
+            bool endsCorrectly = ((ex[ex.Length - 2] == "TO" && ex[ex.Length - 1] == "DISPLAY") || ex[ex.Length - 1] == "TO DISPLAY");
 
             if (!endsCorrectly)
             {

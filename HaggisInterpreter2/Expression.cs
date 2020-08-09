@@ -70,20 +70,30 @@ namespace HaggisInterpreter2
                             sb.Clear();
                         }
 
-                        if(iter[i-1] != '"' || (iter[i] == '&' || iter[i+1] == '&'))
+                        if(iter[i-1] != '"' || (iter[i] == '&' || iter[i+1] == '&') || (int)iter[i] != 32)
                            continue;
                     }
 
                     if ((int)iter[i] == 34 || (int)iter[i] == 39)
                     {
                         i++;
+
+                        if(i >= iter.Length - 1) { continue; }
+
                         while ((int)iter[i] != 34 || (int)iter[i] != 39)
                         {
                             if ((int)iter[i] == 34 || (int)iter[i] == 39)
-                                break;
-
+                            {
+                                if ((int)iter[i+1] == 32 || iter.Length <= i)
+                                    break;
+                            }
+                              
                             sb.Append(iter[i]);
-                            i++;
+
+                            if ((i + 1) < iter.Length)
+                                i++;
+                            else
+                                break;
                         }
                         output.Add(sb.ToString());
                         sb.Clear();
@@ -432,6 +442,11 @@ namespace HaggisInterpreter2
                                      
                     if (string.IsNullOrEmpty(lvlList[HighestIndex - 1].BinaryOp))
                     {
+                        if(lvlList[HighestIndex - 1].BinaryOp == null && (lvlList[HighestIndex].BinaryOp != null && lvlList[HighestIndex].blockType == BlockType.Text))
+                        {
+                            lvlList[HighestIndex - 1].BinaryOp = lvlList[HighestIndex].BinaryOp;
+                        }
+                        else
                         if(lvlList[0].blockType == BlockType.BinOp )
                         {
                             // We need to fix the order, The newest value (Highest index needs to be on top, at index 0)
@@ -452,7 +467,7 @@ namespace HaggisInterpreter2
 
                     // Handle if there is an BinOP by itself
                     int location;
-
+                    bool locForceBreak = false;
                     while(lvlList.Any(item => item.blockType == BlockType.BinOp))
                     {
                         location = lvlList.FindIndex(item => item.blockType == BlockType.BinOp);
@@ -487,11 +502,30 @@ namespace HaggisInterpreter2
                         }
                         else
                         {
-                            throw new Exception("Unable to modify block to suit BinOP Block");
-                        }
+                            if(!lvlList.Any(z => z.blockType == BlockType.BinOp) && lvlList.Count > 2)
+                                throw new Exception("Unable to modify block to suit BinOP Block");
 
+                            //Send the op and text to a lower level
+                            var bin_op = lvlList.First(l => l.blockType == BlockType.BinOp);
+                            var b = lvlList.First(l => l.blockType == BlockType.Text || l.blockType == BlockType.Literal);
+
+                            b.BinaryOp = bin_op.BinaryOp;
+
+                            int fixed_order = (bin_op.OrderNumber < b.OrderNumber) ? bin_op.OrderNumber : b.OrderNumber;
+                            b.OrderNumber = fixed_order;
+                            b.OrderLevel -= 1;
+                            lvlList.RemoveAt(1);
+                            lvlList.RemoveAt(0);
+
+                            sortedLevel[currentLevel - 1].Add(b);
+
+                            locForceBreak = true;
+                            break;
+                        }
                     }
 
+                    if (locForceBreak)
+                        continue;
 
                     // Cache the valve(s) for better performance
                     Value left = Value.Zero;
@@ -627,11 +661,12 @@ namespace HaggisInterpreter2
                         }
 
                         // Move up the data type to allow doubles with floats not to be assigned "0"
-                        if (left.Type == ValueType.INTEGER)
+                                           
+                        /*if (left.Type == ValueType.INTEGER)
                             left = left.Convert(ValueType.REAL);
 
                         if (right.Type == ValueType.INTEGER)
-                            right = right.Convert(ValueType.REAL);
+                            right = right.Convert(ValueType.REAL);*/
 
                         eval = DoExpr(left, op, right);
 
@@ -679,7 +714,14 @@ namespace HaggisInterpreter2
             }
             else if (GetBlockType(blocks[0]) == "Function")
             {
-                return FuncEval(blocks[0], notWrapper, vals);
+                var fn = blocks[0] as FuncBlock;
+                if (isPreDefined(fn.FunctionName))
+                {
+                    var result = PreDefinedFunctions(fn.FunctionName, expression, vals);
+                    return result;
+                }
+                else
+                    return FuncEval(blocks[0], notWrapper, vals);
             }
             else
                 return blocks[0].Value;         
@@ -698,9 +740,22 @@ namespace HaggisInterpreter2
 
         private static Value FuncEval(IBlock block, bool isNotOperator, Dictionary<string, Value> vals)
         {
+
             FuncBlock fb = block as FuncBlock;
             FuncMetaData meta;
             bool isOverride = false;
+
+            if(isPreDefined(fb.FunctionName))
+            {
+                var result = PreDefinedFunctions(fb.FunctionName, string.Join(",", fb.Args), vals);
+
+                if (ReferenceEquals(result, Value.Zero))
+                {
+                    throw new Exception($"Problem identifying the follow pseudo function: {fb.FunctionName}\nHere are the list of them: {string.Join(", ", availableFunctions)}");
+                }
+
+                return result;
+            }
 
             try
             {
@@ -736,7 +791,7 @@ namespace HaggisInterpreter2
                     else
                         val = new Value(args, true);
 
-                    if(isOverride)
+                    if (isOverride)
                     {
                         try
                         {
@@ -751,9 +806,12 @@ namespace HaggisInterpreter2
                     if (val.Type.ToString() != meta.ArgTypes[0])
                         Interpreter.Error($"WRONG PARAMETER DATA TYPE OF {meta.ArgTypes[0]}, EXCEPTED {val.Type} FOR {fb.FunctionName}", val.ToString());
 
-                    var k = meta.ArgValues.Keys.ToArray();
+                    if (!(meta.ArgValues is null))
+                    { 
+                        var k = meta.ArgValues.Keys.ToArray();
 
-                    meta.ArgValues[k[0]] = val;
+                        meta.ArgValues[k[0]] = val;
+                    }
 
                     var _k = Interpreter.function.FirstOrDefault(z => z.Key.Name == fb.FunctionName).Key;
                     var _v = Interpreter.function.FirstOrDefault(z => z.Key.Name == fb.FunctionName).Value;
@@ -849,6 +907,9 @@ namespace HaggisInterpreter2
             new FuncMetaData { Name = "INT", type = FuncMetaData.Type.FUNCTION, ArgTypes = new string[] { "REAL" } },
             new FuncMetaData { Name = "INT", type = FuncMetaData.Type.FUNCTION, ArgTypes = new string[] { "BOOLEAN" } },
 
+            new FuncMetaData { Name = "REAL", type = FuncMetaData.Type.FUNCTION, ArgTypes = new string[] { "STRING" } },
+            new FuncMetaData { Name = "REAL", type = FuncMetaData.Type.FUNCTION, ArgTypes = new string[] { "INTEGER" } },
+            new FuncMetaData { Name = "REAL", type = FuncMetaData.Type.FUNCTION, ArgTypes = new string[] { "BOOLEAN" } },
 
             // DATE PSEUDOCODE FUNCTIONS
             new FuncMetaData { Name = "DAY", type = FuncMetaData.Type.FUNCTION, ArgTypes = new string[0]},
@@ -879,17 +940,39 @@ namespace HaggisInterpreter2
             return new Value();
         }
 
-        private static Value PreDefinedFunctions(string fun, string ex)
+        private static Value PreDefinedFunctions(string fun, string ex, Dictionary<string,Value> val = null)
         {
             Value result = Value.Zero;
 
+            // Remove the function to prevent StackOverflowException (If any)
+
+            if (ex.Contains('(') || ex.Contains(')'))
+            {
+                int funcStart = ex.IndexOf('(') + 1;
+                int funcEnd = ex.LastIndexOf(')') - funcStart;
+                ex = ex.Substring(funcStart, funcEnd);
+            }
+
             #region String functions
-            if (fun == "Lower")
-                result = new Value(ex.ToLower());
-            else if (fun == "Upper")
-                result = new Value(ex.ToUpper());
-            else if (fun == "Trim")
-                result = new Value(ex.Trim());
+            if (fun == "Lower" || fun == "Upper" || fun == "Trim")
+            {
+                result = PerformExpression(val, ex);
+
+                switch (fun)
+                {
+                    case "Lower":
+                        result.STRING = result.STRING.ToLower();
+                        break;
+
+                    case "Upper":
+                        result.STRING = result.STRING.ToUpper();
+                        break;
+
+                    case "Trim":
+                        result.STRING = result.STRING.Trim();
+                        break;
+                }
+            }
             else if (fun == "Title")
             {
                 var text = ex.ToCharArray();
@@ -909,7 +992,6 @@ namespace HaggisInterpreter2
             #endregion
 
             #region Date functions
-
             if(new List<string> { "DAY", "MONTH", "YEAR", "HOURS", "MINUTES", "SECONDS", "MILISECONDS" }.Contains(fun))
             {
                 var d = DateTime.Now;
@@ -946,6 +1028,80 @@ namespace HaggisInterpreter2
                 }
                 if (!result.Equals(Value.Zero))
                     return result;
+            }
+            #endregion
+
+            #region Type conversions
+            if(fun == "INT")
+            {
+                Value express = PerformExpression(val, ex);
+
+                if(!availableFunctions.Where(y => y.Name == "INT").Any(x => x.ArgTypes.Contains(express.Type.ToString())))
+                {
+                    Interpreter.Error("INT CANNOT SUPPORT THE GIVEN INPUT TO CONVERT TO INT", ex);
+                }
+
+                switch (express.Type)
+                {
+                    case ValueType.REAL:
+                        express = new Value(Convert.ToInt32(express.REAL));
+                        break;
+                    case ValueType.STRING:
+                        if(Int32.TryParse(express.ToString(), out int i))
+                        {
+                            express = new Value(i);
+                        }
+                        else
+                        {
+                            Interpreter.Error("INT CANNOT SUPPORT THE GIVEN STRING INPUT", ex);
+                        }
+                        break;
+                    case ValueType.BOOLEAN:
+                        express = new Value((express.BOOLEAN)?true:false);
+                        break;
+                    default:
+                        break;
+                }
+
+                return express;
+            }
+
+            if (fun == "REAL")
+            {
+                Value express = PerformExpression(val, ex);
+
+                // Fix the expression if it results back to REAL
+                if (express.Type == ValueType.REAL && express.REAL % 1 == 0)
+                    express = express.Convert(ValueType.INTEGER);
+
+                if (!availableFunctions.Where(y => y.Name == "REAL").Any(x => x.ArgTypes.Contains(express.Type.ToString())))
+                {
+                    Interpreter.Error("REAL CANNOT SUPPORT THE GIVEN INPUT TO CONVERT TO REAL", ex);
+                }
+
+                switch (express.Type)
+                {
+                    case ValueType.INTEGER:
+                        express = new Value(Convert.ToDouble(express.INT));
+                        break;
+                    case ValueType.STRING:
+                        if (Int32.TryParse(express.ToString(), out int i))
+                        {
+                            express = new Value(i);
+                        }
+                        else
+                        {
+                            Interpreter.Error("REAL CANNOT SUPPORT THE GIVEN STRING INPUT", ex);
+                        }
+                        break;
+                    case ValueType.BOOLEAN:
+                        express = new Value((express.BOOLEAN) ? 1.0 : 0.0);
+                        break;
+                    default:
+                        break;
+                }
+
+                return express;
             }
             #endregion
 
