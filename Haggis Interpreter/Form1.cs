@@ -16,6 +16,7 @@ namespace Haggis_Interpreter
 {
     public partial class Form1 : Form
     {
+        private const string version = "0.0.1";
         private readonly string[] keywords = { "SET", "DECLEAR", "SEND", "RECEIVE" };
         private readonly string[] types = { "STRING", "INTEGER", "BOOLEAN", "REAL", "CHARACTER" };
 
