@@ -86,7 +86,7 @@ namespace Haggis_Interpreter
 
                     if (fixVersion(c_version) > fixVersion(version))
                     {
-                        bool update = Dialog("Update available", $"Version {version} is now available.\nWould you like to go to the download page?");
+                        bool update = Dialog("Update available", $" Version {version} is now available!\n Would you like to go to the download page?");
 
                         if (update)
                         {
