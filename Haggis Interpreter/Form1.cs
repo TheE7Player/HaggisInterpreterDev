@@ -75,6 +75,7 @@ namespace Haggis_Interpreter
                 using (System.Net.WebClient client = new System.Net.WebClient())
                 {
                     client.Headers.Add("user-agent", "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.2; .NET CLR 1.0.3705;)");
+
                     client.Encoding = Encoding.UTF8;
                     string s = client.DownloadString(version_location);
 
@@ -88,7 +89,10 @@ namespace Haggis_Interpreter
                         bool update = Dialog("Update available", $"Version {version} is now available.\nWould you like to go to the download page?");
 
                         if (update)
-                            MessageBox.Show("Yeah");
+                        {
+                            //www.github.com/TheE7Player/HaggisInterpreterDev/releases/latest
+                            System.Diagnostics.Process.Start("www.github.com/TheE7Player/HaggisInterpreterDev/releases/latest");
+                        }
                     }
                 }
             }
