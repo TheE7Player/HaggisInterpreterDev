@@ -54,9 +54,49 @@ namespace Haggis_Interpreter
             //HaggisTextBox.SetKeywords(1, "string real integer character boolean");
         }
 
+        private double fixVersion(string version)
+        {
+            var c_arr = version.ToCharArray().ToList();
+            int lastDot = version.LastIndexOf('.');
+
+            c_arr.RemoveAt(lastDot);
+
+            var num = Convert.ToDouble(string.Join("", c_arr));
+
+            return num;
+        }
+
         private void Form1_Load(object sender, EventArgs e)
         {
-            // Insert logic here
+            // Check for latest version (if possible)
+            try
+            {
+                Uri.TryCreate("https://raw.githubusercontent.com/TheE7Player/HaggisInterpreterDev/master/Haggis%20Interpreter/versions.txt", UriKind.RelativeOrAbsolute, out Uri version_location);
+                using (System.Net.WebClient client = new System.Net.WebClient())
+                {
+                    client.Encoding = Encoding.UTF8;
+                    string s = client.DownloadString(version_location);
+
+                    string[] data = s.Split(Environment.NewLine.ToCharArray());
+
+                    // Gets rid of [exe] tag
+                    string c_version = data[0].Substring(5);
+
+                    if (fixVersion(c_version) > fixVersion(version))
+                    {
+                        bool update = Dialog("Update available", $"Version {version} is now available.\nWould you like to go to the download page?");
+
+                        if (update)
+                            MessageBox.Show("Yeah");
+                    }
+                }
+            }
+            catch (Exception _)
+            {
+                Console.WriteLine("Issue getting updates");
+                Console.WriteLine(_.Message);
+            }
+            
         }
 
         private void runREPLToolStripMenuItem_Click(object sender, EventArgs e)
