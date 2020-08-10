@@ -159,6 +159,8 @@ namespace HaggisInterpreter2
                         var attempt = Expression.PerformExpression(variables, joinedExpression);
 
                         RunMacro(attempt, false);
+
+                        return false;
                     }
                     catch (Exception _)
                     {
@@ -408,7 +410,7 @@ namespace HaggisInterpreter2
                         var t = variables[information[1]].Type;
 
                         if (t != result.Type)
-                            Interpreter.Error($"VARIABLE {information[1]} ALREADY EXISTS/DECLARED", information[1]);
+                            Interpreter.Error($"VARIABLE {information[1]} ALREADY EXISTS/DECLARED (ASSIGNING AS '{result.Type}' INSTEAD OF '{t}')", information[1]);
                     }
 
                     variables.Add(name, new Value(result));
@@ -423,7 +425,7 @@ namespace HaggisInterpreter2
                         var t = variables[name].Type;
 
                         if (t != result.Type)
-                            Interpreter.Error($"VARIABLE {information[1]} ALREADY EXISTS/DECLARED", information[1]);
+                            Interpreter.Error($"VARIABLE {information[1]} ALREADY EXISTS/DECLARED (ASSIGNING AS '{result.Type}' INSTEAD OF '{t}')", information[1]);
                     }
                     variables[name] = new Value(result);
                     SendSocketMessage("variable_decl", $"{name}|{result}");
@@ -544,6 +546,27 @@ namespace HaggisInterpreter2
                     Error($"ERROR: EXPECTED INTEGER, GOT {input} INSTEAD", input);
                 }
             }
+
+            if(varType == "BOOLEAN")
+            {
+                if(!(input != "TRUE" || input != "FALSE"))
+                {
+                    Column = GetColumnFault(input);
+                    Error($"ERROR: EXPECTED BOOLEAN, GOT {input} INSTEAD. MAKE SURE IT'S EITHER 'TRUE' OR 'FALSE' IN CAPS LOCK - 'true' OR 'false' IS INVALID.", input);
+                }
+
+                switch (input)
+                {
+                    case "TRUE":
+                        variables[varName] = new Value(true);
+                        break;
+
+                    case "FALSE":
+                        variables[varName] = new Value(false);
+                        break;
+                }
+            }
+
             SendSocketMessage("variable_inpt", $"{varName}|{input}");
         }
 
@@ -616,9 +639,12 @@ namespace HaggisInterpreter2
                 if (result.BOOLEAN == false)
                 {
                     // Skip the lines till we hit 'ELSE'
-                    string _l;
-                    while (!(_l = GetNextLine()).Contains("ELSE")) { }
+                    bool endHit = false;
 
+                    string _l;
+                    while (!(_l = GetNextLine()).Contains("ELSE")) { if (_l.Contains("END IF")) { endHit = true; break; } }
+
+                    if(!endHit)
                     if (_l.StartsWith("ELSE IF"))
                     {
                         _execute(_l.Trim().Substring(5).Split());
@@ -627,8 +653,9 @@ namespace HaggisInterpreter2
                     {
                         while ((_l = GetNextLine()) != "END IF")
                             _execute(_l.Trim().Split());
-
-                        GetNextLine();
+                        
+                        //TODO: Why was this line added in the first place?!
+                        //GetNextLine(); 
                     }
                 }
                 else

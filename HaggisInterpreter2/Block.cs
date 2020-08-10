@@ -108,7 +108,16 @@ namespace HaggisInterpreter2
     #endregion
 
     public static class BlockParser
-    {     
+    {
+        private static int FindLastChar(string[] ch, string target)
+        {
+            for (int i = ch.Length - 1; i >= 0; i--)
+            {
+                if (ch[i] == target)
+                    return i;
+            }
+            return -1;
+        }
         private static bool CanLookAhead(int current, int len) => ((current + 1) < len); //=> ((current + 1) < len) ? true : false;
         public static List<IBlock> GenerateBlocks(string[] expr, Dictionary<string, Value> vals)
         {          
@@ -185,12 +194,27 @@ namespace HaggisInterpreter2
                             new_expr = null;
 
                             var arg_sb = new StringBuilder();
+                            int last_bracket = FindLastChar(expr, ")");
+                            try
+                            {
+                                if (expr[last_bracket] != ")")
+                                    throw new Exception();
+                            }
+                            catch (Exception)
+                            {
+                                Console.WriteLine("MISSING OR WRONG BALANCE OF BRACKETS FOR EXPRESSION FOR ARGUMENT", expr[i]);
+                            }
+                            
+
                             while (i < max_len)
                             {
                                 if (expr[i] == ")")                                                        
                                 {
                                     if (!(i == expr.Length - 1 || Expression.validOperations.Contains((expr[i + 1][0]))))
                                         continue;
+
+                                    if (i != last_bracket)
+                                    { i++; continue; }
 
                                     if(arg_sb.Length > 0)
                                     {
@@ -307,8 +331,12 @@ namespace HaggisInterpreter2
                 }
 
                 // Check 2
-                if (expr[i].Length == 1 && Expression.validOperations.Contains(_val.ToString()[0]))
-                    bType = BlockType.BinOp;
+                if ((expr[i].Length == 1 && _val.ToString().Length == 1) && Expression.validOperations.Contains(_val.ToString()[0]))
+                {
+                    // Check 3 - Test if '&' op is in play
+                    if(op != "&")
+                        bType = BlockType.BinOp;
+                }
                 
 
                 if (Expression.validComparisons.Contains(expr[i]))
@@ -342,7 +370,7 @@ namespace HaggisInterpreter2
                     }
                     catch (Exception e)
                     {
-                        _list.Add(new ConditionBlock { blockType = BlockType.Expression, Value = Value.Zero, CompareOp = op, Left = _val, Right = new Value(expr[safeIndex], true), OrderLevel = orderLevel, OrderNumber = _list.Count });
+                        _list.Add(new ConditionBlock { blockType = BlockType.Expression, Value = Value.Zero, CompareOp = op, Left = _val, Right = new Value(expr[safeIndex+1], true), OrderLevel = orderLevel, OrderNumber = _list.Count });
                         i += 1;
                         if (CanLookAhead(i + 1, max_len))
                         {

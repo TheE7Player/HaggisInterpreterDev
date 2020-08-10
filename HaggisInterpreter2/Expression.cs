@@ -70,33 +70,14 @@ namespace HaggisInterpreter2
                             sb.Clear();
                         }
 
-                        if(iter[i-1] != '"' || (iter[i] == '&' || iter[i+1] == '&') || (int)iter[i] != 32)
+                        if(iter[i-1] != '"' || (iter[i] == '&' || iter[i+1] == '&'))
                            continue;
                     }
 
                     if ((int)iter[i] == 34 || (int)iter[i] == 39)
                     {
                         i++;
-
-                        if(i >= iter.Length - 1) { continue; }
-
-                        while ((int)iter[i] != 34 || (int)iter[i] != 39)
-                        {
-                            if ((int)iter[i] == 34 || (int)iter[i] == 39)
-                            {
-                                if ((int)iter[i+1] == 32 || iter.Length <= i)
-                                    break;
-                            }
-                              
-                            sb.Append(iter[i]);
-
-                            if ((i + 1) < iter.Length)
-                                i++;
-                            else
-                                break;
-                        }
-                        output.Add(sb.ToString());
-                        sb.Clear();
+                        output.Add(BuildQuote(iter, ref i, ((int)iter[i-1] == 34) ?'"':'\''));
                         continue;
                     }
                     else
@@ -124,8 +105,13 @@ namespace HaggisInterpreter2
                         {
                             if (validOperations.Contains(iter[i]))
                             {
+                                bool ignoreNegative = false;
+
+                                // If not the end of the array
+                                if((i + 1) < iter.Length - 1) { if(iter[i] == '-' && !char.IsDigit(iter[i + 1])) { ignoreNegative = true; } }
+
                                 // Deal with numbers with negative sign
-                                if (iter[i] == '-')
+                                if (iter[i] == '-' && !ignoreNegative)
                                 {
                                     if (sb.Length > 0)
                                         output.Add(sb.ToString());
@@ -203,6 +189,21 @@ namespace HaggisInterpreter2
             }
 
             return output.ToArray();
+        }
+
+        private static string BuildQuote(char[] text, ref int currentIndex, char QuoteChar = '"')
+        {
+            var sb = new StringBuilder();
+            while (currentIndex < (text.Length - 1 ))
+            {
+                if (text[currentIndex] != QuoteChar)
+                    sb.Append(text[currentIndex]);
+                else
+                    break;
+
+                currentIndex++;
+            }
+            return sb.ToString();
         }
 
         private static Value DoExpr(Value l, string op, Value r)
@@ -517,7 +518,9 @@ namespace HaggisInterpreter2
                             lvlList.RemoveAt(1);
                             lvlList.RemoveAt(0);
 
-                            sortedLevel[currentLevel - 1].Add(b);
+                            int newsortedLevel = (currentLevel - 1 > 0) ? currentLevel - 1 : 0;
+
+                            sortedLevel[newsortedLevel].Add(b);
 
                             locForceBreak = true;
                             break;
