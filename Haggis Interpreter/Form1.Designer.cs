@@ -47,6 +47,7 @@
             this.versionText = new System.Windows.Forms.ToolStripStatusLabel();
             this.caretPosition = new System.Windows.Forms.ToolStripStatusLabel();
             this.interpreterLocationLink = new System.Windows.Forms.LinkLabel();
+            this.saveAsNewScriptToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStrip1.SuspendLayout();
             this.statusStrip1.SuspendLayout();
             this.SuspendLayout();
@@ -99,21 +100,23 @@
             // 
             this.newFileToolStripMenuItem.Name = "newFileToolStripMenuItem";
             this.newFileToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
-            this.newFileToolStripMenuItem.Text = "New File";
+            this.newFileToolStripMenuItem.Text = "New File  CTRL+N";
             this.newFileToolStripMenuItem.Click += new System.EventHandler(this.newFileToolStripMenuItem_Click);
             // 
             // openFileToolStripMenuItem
             // 
             this.openFileToolStripMenuItem.Name = "openFileToolStripMenuItem";
             this.openFileToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
-            this.openFileToolStripMenuItem.Text = "Open File";
+            this.openFileToolStripMenuItem.Text = "Open File CTRL+O";
             this.openFileToolStripMenuItem.Click += new System.EventHandler(this.openFileToolStripMenuItem_Click);
             // 
             // saveFileToolStripMenuItem
             // 
+            this.saveFileToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.saveAsNewScriptToolStripMenuItem});
             this.saveFileToolStripMenuItem.Name = "saveFileToolStripMenuItem";
             this.saveFileToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
-            this.saveFileToolStripMenuItem.Text = "Save File";
+            this.saveFileToolStripMenuItem.Text = "Save File CTRL+S";
             this.saveFileToolStripMenuItem.Click += new System.EventHandler(this.saveFileToolStripMenuItem_Click);
             // 
             // toolStripSeparator1
@@ -221,6 +224,13 @@
             this.interpreterLocationLink.UseCompatibleTextRendering = true;
             this.interpreterLocationLink.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.interpreterLocationLink_LinkClicked);
             // 
+            // saveAsNewScriptToolStripMenuItem
+            // 
+            this.saveAsNewScriptToolStripMenuItem.Name = "saveAsNewScriptToolStripMenuItem";
+            this.saveAsNewScriptToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.saveAsNewScriptToolStripMenuItem.Text = "Save as new script";
+            this.saveAsNewScriptToolStripMenuItem.Click += new System.EventHandler(this.saveAsNewScriptToolStripMenuItem_Click);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -265,6 +275,7 @@
         private System.Windows.Forms.ToolStripStatusLabel caretPosition;
         private System.Windows.Forms.LinkLabel interpreterLocationLink;
         private System.Windows.Forms.ToolStripMenuItem settingsMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem saveAsNewScriptToolStripMenuItem;
     }
 }
 

@@ -49,9 +49,10 @@ namespace Haggis_Interpreter.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        public global::System.Collections.Specialized.OrderedDictionary interpreterVersions {
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string interpreterVersions {
             get {
-                return ((global::System.Collections.Specialized.OrderedDictionary)(this["interpreterVersions"]));
+                return ((string)(this["interpreterVersions"]));
             }
             set {
                 this["interpreterVersions"] = value;

@@ -8,7 +8,7 @@
     <Setting Name="currentInterpreterVersion" Type="System.String" Scope="User">
       <Value Profile="(Default)" />
     </Setting>
-    <Setting Name="interpreterVersions" Type="System.Collections.Specialized.OrderedDictionary" Scope="User">
+    <Setting Name="interpreterVersions" Type="System.String" Scope="User">
       <Value Profile="(Default)" />
     </Setting>
     <Setting Name="lastOpenLocation" Type="System.String" Scope="User">

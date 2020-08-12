@@ -52,8 +52,8 @@ namespace HaggisInterpreter2Run
                     if (para == "-get-interpreter-version")
                     {
                         Console.WriteLine($"version: {build}");
-                        Console.ReadLine();
-                        Environment.Exit(0);
+                        Thread.Sleep(100);
+                        return;
                     }
                 }
             }
