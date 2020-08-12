@@ -42,7 +42,7 @@ namespace Haggis_Interpreter
             CloseInstance();     
             file = contents;
             CreateFile = createFile;
-            safeLocation = (ReferenceEquals(safeLocation, null)) ? null : fileLocation;
+            safeLocation = (ReferenceEquals(fileLocation, null)) ? null : fileLocation;
             InitializeComponent();
         }
 
@@ -231,6 +231,7 @@ namespace Haggis_Interpreter
 
             var results = new InterpreterResults(socketData);
             results.StartPosition = FormStartPosition.CenterScreen;
+            results.TopMost = true;
             results.ShowDialog();
         }
     }

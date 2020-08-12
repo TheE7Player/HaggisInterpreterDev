@@ -20,12 +20,18 @@ namespace Haggis_Interpreter
         private readonly string[] keywords = { "SET", "DECLEAR", "SEND", "RECEIVE" };
         private readonly string[] types = { "STRING", "INTEGER", "BOOLEAN", "REAL", "CHARACTER" };
 
+        private string currentFile = "";
+        private bool needsSaved = false;
+
+
         public Form1()
         {
             InitializeComponent();
             LexerSetup();
             AreaSetup();
         }
+
+        #region General/Other
 
         private void RemoveCmds(ref Scintilla tb, Keys[] key) { for (int i = 0; i < key.Length; i++) { tb.ClearCmdKey(Keys.Control | key[i]); } }
             
@@ -102,7 +108,6 @@ namespace Haggis_Interpreter
                 return tcs.Task;
             }
         }
-
 
         private void Form1_Load(object sender, EventArgs e)
         {
@@ -227,95 +232,26 @@ namespace Haggis_Interpreter
             
         }
 
-        private void runREPLToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            // Run the current script in the file
-            try
-            {
-                if(HaggisTextBox.Text.Length<1) { MessageBox.Show("You need some code in order to run the REPL/Interpreter!"); return; }
-
-                string[] file = HaggisTextBox.Text.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
-
-                var win = new RunDialog(file, true);
-                win.ShowDialog();
-
-                loadIsolatedFileMenuItem.Enabled = true;
-                clearIsolatedFileMenuItem.Enabled = true;
-            }
-            catch (Exception x)
-            {
-                Console.WriteLine(x.Message);
-                MessageBox.Show("An error occured while attempting to prepare or launch the interpreter");
-            }
-        }
-
-        private void loadIsolatedFileMenuItem_Click(object sender, EventArgs e)
-        {
-            var isoStore = System.IO.IsolatedStorage.IsolatedStorageFile.GetStore(System.IO.IsolatedStorage.IsolatedStorageScope.User | System.IO.IsolatedStorage.IsolatedStorageScope.Assembly, null, null);
-
-            if (isoStore.GetFileNames().Length == 1)
-            {
-                var fileLoc = Path.Combine(isoStore.GetType().GetField("m_RootDir", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).GetValue(isoStore).ToString(), "runfile.haggis");
-                var lines = File.ReadAllLines(fileLoc);
-                for (int i = 0; i < lines.Length; i++)
-                {
-                    HaggisTextBox.AppendText(lines[i]);
-
-                    if (i < lines.Length)
-                        HaggisTextBox.AppendText("\n");
-                }
-
-                fileLoc = null;
-                lines = null;
-                GC.Collect();
-            }
-        }
-
         private bool Dialog(string title, string message)
         {
-            DialogResult dialogResult = MessageBox.Show(message, title, MessageBoxButtons.YesNo);
+            DialogResult dialogResult = MessageBox.Show(new Form { TopMost = true }, message, title, MessageBoxButtons.YesNo);
             return (dialogResult == DialogResult.Yes);
         }
-
-        private void exitMenuItem_Click(object sender, EventArgs e)
+        
+        private void HaggisTextBox_UpdateUI(object sender, UpdateUIEventArgs e)
         {
-            if(HaggisTextBox.Text.Length > 0)
-            {
-                var result = Dialog("Data in REPL", 
-                                    "Are you sure you want to exit with text inside the REPL?\nYou'll lose all the data if you press \"Yes\"");
-                if (!result)
-                    return;
-            }
+            UpdateToolBar();
 
-            Application.Exit();
+            if (needsSaved && !this.Text.EndsWith(" *"))
+                this.Text = $"Haggis Interpreter ~ {(string.IsNullOrEmpty(currentFile) ? "UNSAVED SCRIPT" : Path.GetFileNameWithoutExtension(currentFile))}  *";
+
+            if (HaggisTextBox.Text.Length < 1)
+            { this.Text = "Haggis Interpreter"; needsSaved = false; }
         }
+        
+        #endregion
 
-        private void clearIsolatedFileMenuItem_Click(object sender, EventArgs e)
-        {
-            if (!Dialog("Clear Isolated File", 
-                        "Clicking \"Yes\" will remove the last script the interpreter ran...\nYou sure you want to proceed?"))
-                return;
-            var isoStore = System.IO.IsolatedStorage.IsolatedStorageFile.GetStore(System.IO.IsolatedStorage.IsolatedStorageScope.User | System.IO.IsolatedStorage.IsolatedStorageScope.Assembly, null, null);
-            string fileLoc = Path.Combine(isoStore.GetType().GetField("m_RootDir", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).GetValue(isoStore).ToString(), "runfile.haggis");
-
-            try
-            {
-                if (File.Exists(fileLoc))
-                    File.Delete(fileLoc);
-
-                Console.WriteLine("Isolated file was successfully removed.");
-                loadIsolatedFileMenuItem.Enabled = false;
-                clearIsolatedFileMenuItem.Enabled = false;
-
-            }
-            catch (Exception z)
-            {
-                Console.WriteLine($"A problem occured while attempting to clear isolated file\n{z.Message}");
-            }
-
-        }
-
-#region AutoComplete Logic
+        #region AutoComplete Logic
     
         bool keywordStart = false;
         bool requireType = false;
@@ -330,6 +266,9 @@ namespace Haggis_Interpreter
         {
             ScintillaNET.Scintilla editor = sender as ScintillaNET.Scintilla;
             UpdateToolBar();
+
+            if(!needsSaved)
+                needsSaved = true;
 
             char ch = (char)e.Char;
            
@@ -524,7 +463,91 @@ namespace Haggis_Interpreter
             }
         }
 
-#endregion
+        #endregion
+
+        #region Toolbar Related
+
+        private void runREPLToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            // Run the current script in the file
+            try
+            {
+                if(HaggisTextBox.Text.Length<1) { MessageBox.Show("You need some code in order to run the REPL/Interpreter!"); return; }
+
+                string[] file = HaggisTextBox.Text.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
+
+                var win = new RunDialog(file, string.IsNullOrEmpty(currentFile)?true:false, string.IsNullOrEmpty(currentFile) ? "" : currentFile);
+                win.ShowDialog();
+
+                loadIsolatedFileMenuItem.Enabled = true;
+                clearIsolatedFileMenuItem.Enabled = true;
+            }
+            catch (Exception x)
+            {
+                Console.WriteLine(x.Message);
+                MessageBox.Show("An error occured while attempting to prepare or launch the interpreter");
+            }
+        }
+
+        private void loadIsolatedFileMenuItem_Click(object sender, EventArgs e)
+        {
+            var isoStore = System.IO.IsolatedStorage.IsolatedStorageFile.GetStore(System.IO.IsolatedStorage.IsolatedStorageScope.User | System.IO.IsolatedStorage.IsolatedStorageScope.Assembly, null, null);
+
+            if (isoStore.GetFileNames().Length == 1)
+            {
+                var fileLoc = Path.Combine(isoStore.GetType().GetField("m_RootDir", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).GetValue(isoStore).ToString(), "runfile.haggis");
+                var lines = File.ReadAllLines(fileLoc);
+                for (int i = 0; i < lines.Length; i++)
+                {
+                    HaggisTextBox.AppendText(lines[i]);
+
+                    if (i < lines.Length)
+                        HaggisTextBox.AppendText("\n");
+                }
+
+                fileLoc = null;
+                lines = null;
+                GC.Collect();
+            }
+        }
+        
+        private void exitMenuItem_Click(object sender, EventArgs e)
+        {
+            if(HaggisTextBox.Text.Length > 0)
+            {
+                var result = Dialog("Data in REPL", 
+                                    "Are you sure you want to exit with text inside the REPL?\nYou'll lose all the data if you press \"Yes\"");
+                if (!result)
+                    return;
+            }
+
+            Application.Exit();
+        }
+
+        private void clearIsolatedFileMenuItem_Click(object sender, EventArgs e)
+        {
+            if (!Dialog("Clear Isolated File", 
+                        "Clicking \"Yes\" will remove the last script the interpreter ran...\nYou sure you want to proceed?"))
+                return;
+            var isoStore = System.IO.IsolatedStorage.IsolatedStorageFile.GetStore(System.IO.IsolatedStorage.IsolatedStorageScope.User | System.IO.IsolatedStorage.IsolatedStorageScope.Assembly, null, null);
+            string fileLoc = Path.Combine(isoStore.GetType().GetField("m_RootDir", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).GetValue(isoStore).ToString(), "runfile.haggis");
+
+            try
+            {
+                if (File.Exists(fileLoc))
+                    File.Delete(fileLoc);
+
+                Console.WriteLine("Isolated file was successfully removed.");
+                loadIsolatedFileMenuItem.Enabled = false;
+                clearIsolatedFileMenuItem.Enabled = false;
+
+            }
+            catch (Exception z)
+            {
+                Console.WriteLine($"A problem occured while attempting to clear isolated file\n{z.Message}");
+            }
+
+        }
 
         private void interpreterMenuStrip_ButtonClick(object sender, EventArgs e)
         {
@@ -538,12 +561,7 @@ namespace Haggis_Interpreter
             caretPos = HaggisTextBox.CurrentPosition; anchorPos = HaggisTextBox.AnchorPosition;
             caretPosition.Text = $"Ch: {caretPos}  Sel: {Math.Abs(anchorPos - caretPos)}";
         }
-
-        private void HaggisTextBox_UpdateUI(object sender, UpdateUIEventArgs e)
-        {
-            UpdateToolBar();
-        }
-
+        
         private void interpreterLocationLink_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
             System.Diagnostics.Process.Start(Path.GetDirectoryName(Properties.Settings.Default.currentInterpreterPath));
@@ -554,7 +572,7 @@ namespace Haggis_Interpreter
             var ofdg = new OpenFileDialog
             {
                 Filter = "Haggis Script File | *.haggis",
-                InitialDirectory = @"C:\",
+                InitialDirectory = (string.IsNullOrEmpty(Properties.Settings.Default.lastOpenLocation)) ? @"C:\" : Properties.Settings.Default.lastOpenLocation,
                 Title = "Please select Haggis Interpreter Script"
              };
 
@@ -562,10 +580,85 @@ namespace Haggis_Interpreter
 
             if(r == DialogResult.OK)
             {
-
                 HaggisTextBox.Text = File.ReadAllText(ofdg.FileName);
+                currentFile = ofdg.FileName;
+                Properties.Settings.Default.lastOpenLocation = Path.GetDirectoryName(ofdg.FileName);
+                Properties.Settings.Default.Save(); Properties.Settings.Default.Reload();
 
+                this.Text = $"Haggis Interpreter ~ {Path.GetFileNameWithoutExtension(ofdg.FileName)}";
             }
         }
+
+        private void settingsMenuItem_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void newFileToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if(HaggisTextBox.Text.Length > 0)
+            {
+                var r = Dialog("Clear current text", "Are you sure you want to start new?! You haven't saved anything...");
+
+                if (!r)
+                    return;
+
+                if (!string.IsNullOrEmpty(currentFile))
+                {
+
+                    r = Dialog("Open file still in use", "Are you sure you want to start a new script despite one being open/edited at this trying time?!");
+                    if (!r)
+                        return;
+                }
+
+                currentFile = null;
+                this.Text = "Haggis Interpreter";
+                HaggisTextBox.ClearAll();
+            }
+        }
+
+        private void saveFileToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+
+            if (string.IsNullOrEmpty(currentFile))
+            { 
+                var sfg = new SaveFileDialog
+                {
+                    Filter = "Haggis Script File | *.haggis",
+                    InitialDirectory = (string.IsNullOrEmpty(Properties.Settings.Default.lastSafeLocation)) ? @"C:\" : Properties.Settings.Default.lastSafeLocation,
+                    Title = "Please save current Haggis Interpreter Script"
+                };
+
+                var r = sfg.ShowDialog(new Form { TopMost = true });
+
+                if (r == DialogResult.OK)
+                {
+                    File.WriteAllText(sfg.FileName, HaggisTextBox.Text);
+                    currentFile = sfg.FileName;
+                    Properties.Settings.Default.lastSafeLocation = Path.GetDirectoryName(sfg.FileName);
+                    Properties.Settings.Default.Save(); Properties.Settings.Default.Reload();
+
+                    this.Text = $"Haggis Interpreter ~ {Path.GetFileNameWithoutExtension(sfg.FileName)}";
+                }
+                return;
+            }
+
+            try
+            {
+                File.WriteAllText(currentFile, HaggisTextBox.Text);
+
+                needsSaved = false;
+
+                this.Text = this.Text.Replace("*", "").Trim();
+            }
+            catch (Exception _)
+            {
+                MessageBox.Show("SAVING FAILED, Please manual copy all the script and manually save it please! My bad bruh.");
+                Console.WriteLine(_.Message);
+            }
+        }
+
+        #endregion
+
     }
 }

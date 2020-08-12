@@ -57,5 +57,29 @@ namespace Haggis_Interpreter.Properties {
                 this["interpreterVersions"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string lastOpenLocation {
+            get {
+                return ((string)(this["lastOpenLocation"]));
+            }
+            set {
+                this["lastOpenLocation"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string lastSafeLocation {
+            get {
+                return ((string)(this["lastSafeLocation"]));
+            }
+            set {
+                this["lastSafeLocation"] = value;
+            }
+        }
     }
 }

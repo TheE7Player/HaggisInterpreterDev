@@ -38,6 +38,7 @@
             this.loadIsolatedFileMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.clearIsolatedFileMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
+            this.settingsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.exitMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.interpreterMenuStrip = new System.Windows.Forms.ToolStripSplitButton();
             this.runREPLToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -88,6 +89,7 @@
             this.loadIsolatedFileMenuItem,
             this.clearIsolatedFileMenuItem,
             this.toolStripSeparator2,
+            this.settingsMenuItem,
             this.exitMenuItem});
             this.toolStripLabel1.Name = "toolStripLabel1";
             this.toolStripLabel1.Size = new System.Drawing.Size(38, 22);
@@ -98,6 +100,7 @@
             this.newFileToolStripMenuItem.Name = "newFileToolStripMenuItem";
             this.newFileToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.newFileToolStripMenuItem.Text = "New File";
+            this.newFileToolStripMenuItem.Click += new System.EventHandler(this.newFileToolStripMenuItem_Click);
             // 
             // openFileToolStripMenuItem
             // 
@@ -111,6 +114,7 @@
             this.saveFileToolStripMenuItem.Name = "saveFileToolStripMenuItem";
             this.saveFileToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.saveFileToolStripMenuItem.Text = "Save File";
+            this.saveFileToolStripMenuItem.Click += new System.EventHandler(this.saveFileToolStripMenuItem_Click);
             // 
             // toolStripSeparator1
             // 
@@ -137,6 +141,13 @@
             // 
             this.toolStripSeparator2.Name = "toolStripSeparator2";
             this.toolStripSeparator2.Size = new System.Drawing.Size(177, 6);
+            // 
+            // settingsMenuItem
+            // 
+            this.settingsMenuItem.Name = "settingsMenuItem";
+            this.settingsMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.settingsMenuItem.Text = "Settings";
+            this.settingsMenuItem.Click += new System.EventHandler(this.settingsMenuItem_Click);
             // 
             // exitMenuItem
             // 
@@ -198,7 +209,7 @@
             // 
             this.interpreterLocationLink.AutoSize = true;
             this.interpreterLocationLink.LinkArea = new System.Windows.Forms.LinkArea(0, 160);
-            this.interpreterLocationLink.Location = new System.Drawing.Point(1004, 9);
+            this.interpreterLocationLink.Location = new System.Drawing.Point(1003, 8);
             this.interpreterLocationLink.Margin = new System.Windows.Forms.Padding(20, 0, 20, 0);
             this.interpreterLocationLink.Name = "interpreterLocationLink";
             this.interpreterLocationLink.Padding = new System.Windows.Forms.Padding(20, 0, 20, 0);
@@ -253,6 +264,7 @@
         private System.Windows.Forms.ToolStripStatusLabel versionText;
         private System.Windows.Forms.ToolStripStatusLabel caretPosition;
         private System.Windows.Forms.LinkLabel interpreterLocationLink;
+        private System.Windows.Forms.ToolStripMenuItem settingsMenuItem;
     }
 }
 
