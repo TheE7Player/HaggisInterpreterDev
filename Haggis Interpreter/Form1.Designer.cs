@@ -45,6 +45,7 @@
             this.statusStrip1 = new System.Windows.Forms.StatusStrip();
             this.versionText = new System.Windows.Forms.ToolStripStatusLabel();
             this.caretPosition = new System.Windows.Forms.ToolStripStatusLabel();
+            this.interpreterLocationLink = new System.Windows.Forms.LinkLabel();
             this.toolStrip1.SuspendLayout();
             this.statusStrip1.SuspendLayout();
             this.SuspendLayout();
@@ -95,31 +96,32 @@
             // newFileToolStripMenuItem
             // 
             this.newFileToolStripMenuItem.Name = "newFileToolStripMenuItem";
-            this.newFileToolStripMenuItem.Size = new System.Drawing.Size(176, 22);
+            this.newFileToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.newFileToolStripMenuItem.Text = "New File";
             // 
             // openFileToolStripMenuItem
             // 
             this.openFileToolStripMenuItem.Name = "openFileToolStripMenuItem";
-            this.openFileToolStripMenuItem.Size = new System.Drawing.Size(176, 22);
+            this.openFileToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.openFileToolStripMenuItem.Text = "Open File";
+            this.openFileToolStripMenuItem.Click += new System.EventHandler(this.openFileToolStripMenuItem_Click);
             // 
             // saveFileToolStripMenuItem
             // 
             this.saveFileToolStripMenuItem.Name = "saveFileToolStripMenuItem";
-            this.saveFileToolStripMenuItem.Size = new System.Drawing.Size(176, 22);
+            this.saveFileToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.saveFileToolStripMenuItem.Text = "Save File";
             // 
             // toolStripSeparator1
             // 
             this.toolStripSeparator1.Name = "toolStripSeparator1";
-            this.toolStripSeparator1.Size = new System.Drawing.Size(173, 6);
+            this.toolStripSeparator1.Size = new System.Drawing.Size(177, 6);
             // 
             // loadIsolatedFileMenuItem
             // 
             this.loadIsolatedFileMenuItem.Enabled = false;
             this.loadIsolatedFileMenuItem.Name = "loadIsolatedFileMenuItem";
-            this.loadIsolatedFileMenuItem.Size = new System.Drawing.Size(176, 22);
+            this.loadIsolatedFileMenuItem.Size = new System.Drawing.Size(180, 22);
             this.loadIsolatedFileMenuItem.Text = "Load Last Run Item";
             this.loadIsolatedFileMenuItem.Click += new System.EventHandler(this.loadIsolatedFileMenuItem_Click);
             // 
@@ -127,19 +129,19 @@
             // 
             this.clearIsolatedFileMenuItem.Enabled = false;
             this.clearIsolatedFileMenuItem.Name = "clearIsolatedFileMenuItem";
-            this.clearIsolatedFileMenuItem.Size = new System.Drawing.Size(176, 22);
+            this.clearIsolatedFileMenuItem.Size = new System.Drawing.Size(180, 22);
             this.clearIsolatedFileMenuItem.Text = "Clear Last Run Item";
             this.clearIsolatedFileMenuItem.Click += new System.EventHandler(this.clearIsolatedFileMenuItem_Click);
             // 
             // toolStripSeparator2
             // 
             this.toolStripSeparator2.Name = "toolStripSeparator2";
-            this.toolStripSeparator2.Size = new System.Drawing.Size(173, 6);
+            this.toolStripSeparator2.Size = new System.Drawing.Size(177, 6);
             // 
             // exitMenuItem
             // 
             this.exitMenuItem.Name = "exitMenuItem";
-            this.exitMenuItem.Size = new System.Drawing.Size(176, 22);
+            this.exitMenuItem.Size = new System.Drawing.Size(180, 22);
             this.exitMenuItem.Text = "Exit";
             this.exitMenuItem.Click += new System.EventHandler(this.exitMenuItem_Click);
             // 
@@ -192,11 +194,28 @@
             this.caretPosition.Size = new System.Drawing.Size(67, 17);
             this.caretPosition.Text = "Ch:0   Sel: 0";
             // 
+            // interpreterLocationLink
+            // 
+            this.interpreterLocationLink.AutoSize = true;
+            this.interpreterLocationLink.LinkArea = new System.Windows.Forms.LinkArea(0, 160);
+            this.interpreterLocationLink.Location = new System.Drawing.Point(1004, 9);
+            this.interpreterLocationLink.Margin = new System.Windows.Forms.Padding(20, 0, 20, 0);
+            this.interpreterLocationLink.Name = "interpreterLocationLink";
+            this.interpreterLocationLink.Padding = new System.Windows.Forms.Padding(20, 0, 20, 0);
+            this.interpreterLocationLink.Size = new System.Drawing.Size(210, 17);
+            this.interpreterLocationLink.TabIndex = 4;
+            this.interpreterLocationLink.TabStop = true;
+            this.interpreterLocationLink.Text = "Locate Current Interpreter (0.0.0)";
+            this.interpreterLocationLink.TextAlign = System.Drawing.ContentAlignment.TopRight;
+            this.interpreterLocationLink.UseCompatibleTextRendering = true;
+            this.interpreterLocationLink.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.interpreterLocationLink_LinkClicked);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1264, 681);
+            this.Controls.Add(this.interpreterLocationLink);
             this.Controls.Add(this.statusStrip1);
             this.Controls.Add(this.toolStrip1);
             this.Controls.Add(this.HaggisTextBox);
@@ -233,6 +252,7 @@
         private System.Windows.Forms.StatusStrip statusStrip1;
         private System.Windows.Forms.ToolStripStatusLabel versionText;
         private System.Windows.Forms.ToolStripStatusLabel caretPosition;
+        private System.Windows.Forms.LinkLabel interpreterLocationLink;
     }
 }
 

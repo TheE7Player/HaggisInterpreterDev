@@ -11,7 +11,7 @@ namespace HaggisInterpreter2Run
 {
     internal class Program
     {
-        private static readonly string build = "0.8";
+        private static readonly string build = "0.9";
         private static bool ignoreTitles = false;
         private static bool runSocket = false;
         private static void Title(string file = "")
@@ -49,6 +49,12 @@ namespace HaggisInterpreter2Run
                     if (para == "-socket") { runSocket = true; continue; }
                     if (para.Contains("-socket_ip")){ ip = para.Substring(10).Trim(); continue; }
                     if (para.Contains("-socket_port")) { port = Convert.ToInt32(para.Substring(12).Trim()); continue; }
+                    if (para == "-get-interpreter-version")
+                    {
+                        Console.WriteLine($"version: {build}");
+                        Console.ReadLine();
+                        Environment.Exit(0);
+                    }
                 }
             }
             catch (Exception e)

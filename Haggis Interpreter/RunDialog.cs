@@ -66,7 +66,7 @@ namespace Haggis_Interpreter
                 process.StartInfo.RedirectStandardInput = true;
                 process.StartInfo.CreateNoWindow = true;
 
-                process.StartInfo.FileName = @"C:\Users\Owner\Source\Repos\HaggisInterpreter2\HaggisInterpreter2Run\bin\Release\HaggisInterpreter2Run.exe";
+                process.StartInfo.FileName = Properties.Settings.Default.currentInterpreterPath;
 
                 //$"\"-input_output_only\" \"{safeLocation}\"";
                 process.StartInfo.Arguments = $"\"-input_output_only\" \"-socket\" \"{safeLocation}\"";

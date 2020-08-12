@@ -7,7 +7,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HaggisInterpreter2", "Haggi
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HaggisInterpreter2Run", "HaggisInterpreter2Run\HaggisInterpreter2Run.csproj", "{10A623AC-370D-4BEE-B13B-D9BC4E4EE9C4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Haggis Interpreter", "Haggis Interpreter\Haggis Interpreter.csproj", "{81EB2B79-2D00-40DC-BF32-C172803549FD}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HaggisInterpreterExe", "Haggis Interpreter\HaggisInterpreterExe.csproj", "{81EB2B79-2D00-40DC-BF32-C172803549FD}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

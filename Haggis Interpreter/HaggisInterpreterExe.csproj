@@ -86,6 +86,7 @@
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
+      <DesignTime>True</DesignTime>
     </Compile>
     <EmbeddedResource Include="RunDialog.resx">
       <DependentUpon>RunDialog.cs</DependentUpon>
@@ -109,6 +110,9 @@
       <Project>{2ad1ea47-f60b-46d3-a517-a09bcd8db807}</Project>
       <Name>HaggisInterpreter2</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Resources\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

@@ -42,6 +42,9 @@ namespace Haggis_Interpreter
             // Remove hotkeys (Sends 'Unicode' variations of it)
             RemoveCmds(ref HaggisTextBox, new Keys[] { Keys.S, Keys.F, Keys.H});
             HaggisTextBox.ClearCmdKey(Keys.Control | Keys.R);
+
+
+            interpreterLocationLink.Text = $"Locate Current Interpreter ({Properties.Settings.Default.currentInterpreterVersion})";
         }
 
         private void LexerSetup()
@@ -66,11 +69,48 @@ namespace Haggis_Interpreter
             return num;
         }
 
+        private Task<string> GetInterpreterVersion(string pathLoc)
+        {       
+            string info = string.Empty;
+            var process = new System.Diagnostics.Process();
+            var tcs = new TaskCompletionSource<string>();
+            try
+            {
+              
+                process.StartInfo.UseShellExecute = false;
+                process.StartInfo.RedirectStandardOutput = true;
+                process.StartInfo.CreateNoWindow = true;
+
+                process.StartInfo.FileName = pathLoc;
+                process.StartInfo.Arguments = "-get-interpreter-version";
+                process.EnableRaisingEvents = true;
+
+                process.OutputDataReceived += (o, s) =>
+                {
+                    tcs.SetResult(s.Data);
+                    process.Close();
+                };
+
+                process.Start();
+                process.BeginOutputReadLine();
+
+                return tcs.Task;
+            }
+            catch (Exception)
+            {
+                tcs.SetResult(string.Empty);
+                return tcs.Task;
+            }
+        }
+
+
         private void Form1_Load(object sender, EventArgs e)
         {
             // Check for latest version (if possible)
+            string[] data = new string[0];
             try
             {
+#if !DEBUG
                 Uri.TryCreate("https://raw.githubusercontent.com/TheE7Player/HaggisInterpreterDev/master/Haggis%20Interpreter/versions.txt", UriKind.RelativeOrAbsolute, out Uri version_location);
                 using (System.Net.WebClient client = new System.Net.WebClient())
                 {
@@ -79,10 +119,14 @@ namespace Haggis_Interpreter
                     client.Encoding = Encoding.UTF8;
                     string s = client.DownloadString(version_location);
 
-                    string[] data = s.Split(Environment.NewLine.ToCharArray());
+                    data = s.Split(Environment.NewLine.ToCharArray());         
+                }
 
-                    // Gets rid of [exe] tag
-                    string c_version = data[0].Substring(5);
+                // Gets rid of [exe] tag
+                string c_version = data[0].Substring(5);
+
+
+                    // Only do a check if not in debug mode
 
                     if (fixVersion(c_version) > fixVersion(version))
                     {
@@ -94,7 +138,86 @@ namespace Haggis_Interpreter
                             System.Diagnostics.Process.Start("www.github.com/TheE7Player/HaggisInterpreterDev/releases/latest");
                         }
                     }
+#endif
+
+                // Check if first time run (Both properties here should be null/empty)
+                if (string.IsNullOrEmpty(Properties.Settings.Default.currentInterpreterPath) || string.IsNullOrEmpty(Properties.Settings.Default.currentInterpreterVersion))
+                {
+                    MessageBox.Show("This appears to be your first time running this application!\r\n\nPlease locate where you downloaded the interperter in order to run this application smoothly\r\n\nIt can be found here ( grab the latest one! )\r\n\n -> www.github.com/TheE7Player/HaggisInterpreter/releases/latest");
+
+                    FolderBrowserDialog fbdb;
+                    string loc;
+                    string version;
+                    bool valid = false;
+                    int loopMax = 3;
+                    bool forceExit = false;
+                    while (!valid) 
+                    {
+                        loopMax--;
+                        
+                        if(loopMax == -1) { forceExit = true; break; }
+
+                        fbdb = new FolderBrowserDialog
+                        { 
+                            ShowNewFolderButton = false,                          
+                        };
+                        fbdb.Description = $"Locate the folder where the interpreter is installed (HaggisInterpreter2Run.exe)\nNote: Best to check it in a folder where it cannot be accidently deleted!\n{loopMax + 1} attempts left";
+                        var action = fbdb.ShowDialog(new Form { TopMost = true });
+
+                        if(action == DialogResult.Cancel) { forceExit = true; break; }
+
+                        if(Directory.Exists(fbdb.SelectedPath))
+                        {
+                            var files = Directory.GetFiles(fbdb.SelectedPath);
+
+                            if (!files.Any(x => Path.GetFileName(x) == "HaggisInterpreter2Run.exe"))
+                            {
+                                fbdb.Dispose();
+                                fbdb = null;
+                                continue;
+                            }
+
+                            loc = files.First(t => t.Contains("HaggisInterpreter2Run.exe"));
+
+                            // Now we get its version
+                            var resultVersion = GetInterpreterVersion(loc);
+                            //resultVersion.Start();
+                            resultVersion.Wait();
+
+                            if (!resultVersion.Result.StartsWith("version"))
+                            {
+                                MessageBox.Show(new Form { TopMost = true },
+                                $"Hmm, I didn't expected that - I needed a interpreter version, but I got this instead:\n{resultVersion.Result}",
+                                "Error parsing verison",
+                                MessageBoxButtons.OK,
+                                MessageBoxIcon.None);
+                                continue;
+                            }
+
+                            version = resultVersion.Result.Substring(9);
+
+                            Properties.Settings.Default.currentInterpreterPath = loc;
+                            Properties.Settings.Default.currentInterpreterVersion = version;
+
+                            interpreterLocationLink.Text = $"Locate Current Interpreter ({version})";
+
+                            Properties.Settings.Default.Save();
+                            Properties.Settings.Default.Reload();
+                            valid = true;
+                        }
+                    }
+
+                    if (forceExit)
+                    {
+                        MessageBox.Show(new Form { TopMost = true }, 
+                            "Sorry, you cannot run this program without a interpreter being installed or located. I am afraid I have to jump out of the window now... adios...", 
+                            "No can do B0$$",
+                            MessageBoxButtons.OK, 
+                            MessageBoxIcon.None);
+                            this.Close(); 
+                    }
                 }
+
             }
             catch (Exception _)
             {
@@ -183,6 +306,7 @@ namespace Haggis_Interpreter
                 Console.WriteLine("Isolated file was successfully removed.");
                 loadIsolatedFileMenuItem.Enabled = false;
                 clearIsolatedFileMenuItem.Enabled = false;
+
             }
             catch (Exception z)
             {
@@ -191,7 +315,7 @@ namespace Haggis_Interpreter
 
         }
 
-        #region AutoComplete Logic
+#region AutoComplete Logic
     
         bool keywordStart = false;
         bool requireType = false;
@@ -400,7 +524,7 @@ namespace Haggis_Interpreter
             }
         }
 
-        #endregion
+#endregion
 
         private void interpreterMenuStrip_ButtonClick(object sender, EventArgs e)
         {
@@ -418,6 +542,30 @@ namespace Haggis_Interpreter
         private void HaggisTextBox_UpdateUI(object sender, UpdateUIEventArgs e)
         {
             UpdateToolBar();
+        }
+
+        private void interpreterLocationLink_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+        {
+            System.Diagnostics.Process.Start(Path.GetDirectoryName(Properties.Settings.Default.currentInterpreterPath));
+        }
+
+        private void openFileToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            var ofdg = new OpenFileDialog
+            {
+                Filter = "Haggis Script File | *.haggis",
+                InitialDirectory = @"C:\",
+                Title = "Please select Haggis Interpreter Script"
+             };
+
+            var r = ofdg.ShowDialog();
+
+            if(r == DialogResult.OK)
+            {
+
+                HaggisTextBox.Text = File.ReadAllText(ofdg.FileName);
+
+            }
         }
     }
 }
