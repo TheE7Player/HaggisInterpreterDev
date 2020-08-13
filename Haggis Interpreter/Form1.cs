@@ -17,11 +17,14 @@ namespace Haggis_Interpreter
     public partial class Form1 : Form
     {
         private const string version = "0.0.1";
-        private readonly string[] keywords = { "SET", "DECLEAR", "SEND", "RECEIVE" };
+        private readonly string[] keywords = { "SET", "DECLEAR", "SEND", "RECEIVE", "INITIALLY", "DISPLAY", "TO", "AS", "FROM", "KEYBOARD", "END", "IF", "ELSE", "OR", "AND", "NOT", "FUNCTION", "PROCEDURE", "WHILE", "REPEAT", "DO", "UNTIL", "RETURN", "THEN",
+                                               "STRING", "INTEGER", "BOOLEAN", "REAL", "CHARACTER" };
         private readonly string[] types = { "STRING", "INTEGER", "BOOLEAN", "REAL", "CHARACTER" };
 
         private string currentFile = "";
         private bool needsSaved = false;
+
+        private HaggisLexer _lex;
 
 
         public Form1()
@@ -54,12 +57,31 @@ namespace Haggis_Interpreter
 
         private void LexerSetup()
         {
-            //HaggisTextBox.Lexer = Lexer.Container;
+            _lex = new HaggisLexer(string.Join(" ", keywords));
 
             HaggisTextBox.Margins[0].Width = 50;
 
-            //HaggisTextBox.SetKeywords(0, "set declear initially send display to as from keyboard");
-            //HaggisTextBox.SetKeywords(1, "string real integer character boolean");
+            HaggisTextBox.Styles[HaggisLexer.StyleDefault].ForeColor = Color.Black;
+
+            // VS19 Keyword Colour
+            HaggisTextBox.Styles[HaggisLexer.StyleKeyword].ForeColor = Color.FromArgb(46, 123, 186);
+
+            HaggisTextBox.Styles[HaggisLexer.StyleIdentifier].ForeColor = Color.Teal;
+            HaggisTextBox.Styles[HaggisLexer.StyleNumber].ForeColor = Color.Purple;
+
+            // VS19 String Quote Colour -> " "
+            HaggisTextBox.Styles[HaggisLexer.StyleString].ForeColor = Color.FromArgb(206,139,111);
+            HaggisTextBox.Styles[HaggisLexer.StyleComment].ForeColor = Color.Green;
+
+            HaggisTextBox.Lexer = Lexer.Container;
+        }
+
+        private void HaggisTextBox_StyleNeeded(object sender, StyleNeededEventArgs e)
+        {
+            var startPos = HaggisTextBox.GetEndStyled();
+            var endPos = e.Position;
+
+            _lex.Style(HaggisTextBox, startPos, endPos);
         }
 
         private double fixVersion(string version)
@@ -387,6 +409,9 @@ namespace Haggis_Interpreter
         {
             var ht = sender as ScintillaNET.Scintilla;
 
+            if (!needsSaved)
+                needsSaved = true;
+
             if (ht.Lines[ht.CurrentLine].Text.Length < 1 || charBuilder.Length < 1) { ResetAuto(); return; }
 
             var text = charBuilder.ToString();
@@ -438,6 +463,26 @@ namespace Haggis_Interpreter
             if ( types.Contains(e.Text) )
             {
                 if (!editor.AutoCActive && editor.Lines[editor.CurrentLine].Text.Contains("DECLEAR")) { editor.InsertText(editor.CurrentPosition, " "); editor.GotoPosition(editor.CurrentPosition + 2); editor.AutoCShow(0, "INITIALLY"); }
+            }
+
+            if(e.Text == "PROCEDURE" || e.Text == "FUNCTION")
+            {
+                editor.InsertText(editor.CurrentPosition, " ");
+                int nicespot = editor.CurrentPosition;
+
+                editor.GotoPosition(nicespot + 1); 
+                editor.InsertText(editor.CurrentPosition, (e.Text == "FUNCTION") ? " () RETURNS <DATA TYPE>\n\nEND FUNCTION\n" : " ()\n\nEND PROCEDURE\n"); 
+                editor.GotoPosition(nicespot + 1);
+            }
+
+            if (e.Text == "WHILE" || e.Text == "REPEAT")
+            {
+                editor.InsertText(editor.CurrentPosition, " ");
+                int nicespot = editor.CurrentPosition;
+
+                editor.GotoPosition(nicespot + 1); 
+                editor.InsertText(editor.CurrentPosition, (e.Text == "WHILE") ? " DO\n\t\nEND WHILE\n" : "\n\t\nUNTIL < condition >"); 
+                editor.GotoPosition((e.Text == "WHILE") ? nicespot + 1 : nicespot + 3);
             }
 
             UpdateToolBar();
@@ -632,11 +677,25 @@ namespace Haggis_Interpreter
 
             if(r == DialogResult.OK)
             {
-                HaggisTextBox.Text = File.ReadAllText(ofdg.FileName);
+                if(HaggisTextBox.Text.Length > 0 || !string.IsNullOrEmpty(currentFile))
+                if (!Dialog("Opening file with contents", "There is currently text in the REPL - Opening this file will erase what you did\nAre you sure?!"))
+                    return;
+
+                string[] text = File.ReadAllText(ofdg.FileName).Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+
+                string _text = $"{text[0]}\r\n";
+                
+                HaggisTextBox.Text = "";
+                HaggisTextBox.AppendText(_text);
+
+                for (int i = 1; i < text.Length; i++) { _text = $"{text[i]}\r\n"; HaggisTextBox.AppendText( _text); HaggisTextBox.Update(); }
+
+                //HaggisTextBox.Text = File.ReadAllText(ofdg.FileName);
                 currentFile = ofdg.FileName;
                 Properties.Settings.Default.lastOpenLocation = Path.GetDirectoryName(ofdg.FileName);
                 Properties.Settings.Default.Save(); Properties.Settings.Default.Reload();
 
+                HaggisTextBox.Refresh();
                 this.Text = $"Haggis Interpreter ~ {Path.GetFileNameWithoutExtension(ofdg.FileName)}";
             }
         }

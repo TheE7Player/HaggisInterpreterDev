@@ -873,6 +873,12 @@ namespace HaggisInterpreter2
             if (cb.Right.Type == ValueType.STRING)
                 cb.Right = (vals.ContainsKey(cb.Right.STRING)) ? vals[cb.Right.STRING] : cb.Right;
 
+            if (cb.Left.Type == ValueType.CHARACTER)
+                cb.Left = (vals.ContainsKey(cb.Left.CHARACTER.ToString())) ? vals[cb.Left.CHARACTER.ToString()] : cb.Left;
+
+            if (cb.Right.Type == ValueType.CHARACTER)
+                cb.Right = (vals.ContainsKey(cb.Right.CHARACTER.ToString())) ? vals[cb.Right.CHARACTER.ToString()] : cb.Right;
+
             // Good, now we check if its an integer, we raise it to the next highest type (Float/Double -> REAL)
             if (cb.Left.Type == ValueType.INTEGER)
                 cb.Left = cb.Left.Convert(ValueType.REAL);

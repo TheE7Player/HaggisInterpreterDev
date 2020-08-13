@@ -27,6 +27,7 @@ namespace Haggis_Interpreter
         bool CreateFile;
         string safeLocation;
         IsolatedStorageFile isoStore;
+        List<string> _console;
         #endregion
 
         #region Socket Properties
@@ -42,6 +43,7 @@ namespace Haggis_Interpreter
             CloseInstance();     
             file = contents;
             CreateFile = createFile;
+            _console = new List<string>(1);
             safeLocation = (ReferenceEquals(fileLocation, null)) ? null : fileLocation;
             InitializeComponent();
         }
@@ -118,7 +120,16 @@ namespace Haggis_Interpreter
             {
                 this.BeginInvoke(new MethodInvoker(() =>
                 {
-                    richTextBox1.AppendText($"{e.Data}\n" ?? string.Empty);
+                    if (e.Data == "RUNNING AS CLIENT IS HERE!")
+                        richTextBox1.Clear();
+                    else {
+                        string text = $"{e.Data}\n" ?? string.Empty;
+                        
+                        if(e.Data != "Waiting connection ... ")
+                            _console.Add($"[O]{text}");
+
+                        richTextBox1.AppendText(text);
+                    }
                 }));
             }
             catch (Exception x)
@@ -138,6 +149,7 @@ namespace Haggis_Interpreter
                 {
                     Console.WriteLine($"Input: {textBox2.Text}");
                     process.StandardInput.WriteLine(textBox2.Text);
+                    _console.Add($"[I]{textBox2.Text}");
                     textBox2.Clear();
                     e.SuppressKeyPress = true; // Prevent windows thinking you cannot press enter (Makes a ding noise!)
                 }              
@@ -229,7 +241,7 @@ namespace Haggis_Interpreter
                 richTextBox1.AppendText("An error occured - woops!");
             }
 
-            var results = new InterpreterResults(socketData);
+            var results = new InterpreterResults(socketData, _console);
             results.StartPosition = FormStartPosition.CenterScreen;
             results.TopMost = true;
             results.ShowDialog();

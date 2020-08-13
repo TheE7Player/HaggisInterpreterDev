@@ -289,12 +289,14 @@ namespace HaggisInterpreter2
                             if(CanLookAhead(i + 1, max_len))
                             {
                                 string op_concat = $"{op}{expr[i + 1]}";
-                                if(op_concat == "!=" || op_concat == "<>")
-                                {
-                                    i++;
-                                    op = "!=";
-                                }                                                             
+                                if(op_concat == "!=" || op_concat == "<>") { i++; op = "!="; }
+
+                                // Support for >= and <=
+                                if (op_concat == ">=" || op_concat == "<=")
+                                { op = op_concat; i++; }
                             }
+
+
                         }
                     } 
                 }

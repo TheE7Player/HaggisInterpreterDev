@@ -58,6 +58,7 @@
     <Compile Include="Form1.Designer.cs">
       <DependentUpon>Form1.cs</DependentUpon>
     </Compile>
+    <Compile Include="HaggisLexer.cs" />
     <Compile Include="InterpreterResults.cs">
       <SubType>Form</SubType>
     </Compile>

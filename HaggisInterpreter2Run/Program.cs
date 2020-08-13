@@ -11,7 +11,7 @@ namespace HaggisInterpreter2Run
 {
     internal class Program
     {
-        private static readonly string build = "0.9";
+        private static readonly string build = "0.9.1";
         private static bool ignoreTitles = false;
         private static bool runSocket = false;
         private static void Title(string file = "")
@@ -35,7 +35,7 @@ namespace HaggisInterpreter2Run
             // Invalid rule: First param has to be folder, if folder futher on, error!
             FileAttributes attr;
 
-            var param = args.Where(x => x.StartsWith("-")).ToArray();
+            string[] param = args.Where(x => x.StartsWith("-")).ToArray();
             args = args.Where(y => !param.Contains(y)).ToArray();
 
 
@@ -65,8 +65,7 @@ namespace HaggisInterpreter2Run
             }
             finally
             {
-                currParam = null;
-                param = null;           
+                currParam = null;    
             }
             
 
@@ -141,11 +140,22 @@ namespace HaggisInterpreter2Run
                     basic.Execute();
                     filePassesTimes[filePath].Stop();
                     filePasses[filePath] = true;
-                    
-                    if (runSocket) 
+
+                    if (runSocket)
                     {
                         Interpreter.server.QueueMessage("i_server", Interpreter.server.GetServerDetails());
+                        Interpreter.server.QueueMessage("i_version", build);
 
+                        var flags = new StringBuilder();
+
+                        var _args = args.ToList();
+                        for (int i = 0; i < param.Length; i++) { _args.Insert(i, param[i]); }
+                        for (int i = 0; i < _args.Count; i++) { flags.Append($"  [{i}]\t\"{_args[i]}\"\n"); }
+
+                        Interpreter.server.QueueMessage("i_arguments", flags.ToString());
+                        
+                        flags = null;
+                        _args = null;
                         var _t = filePassesTimes[filePath].Elapsed; 
                         Interpreter.server.QueueMessage("time", $"{_t.TotalMinutes}|{_t.Seconds}|{_t.Milliseconds}");
                     }             
@@ -244,6 +254,7 @@ namespace HaggisInterpreter2Run
                 filePasses = null;
                 files = null;
                 filePassesTimes = null;
+                param = null;
             }
             else
             {

@@ -84,7 +84,8 @@ namespace HaggisInterpreter2
                             }
                         }
                         
-                        Exit = _execute(_line.Split());                
+                        Exit = _execute(_line.Split());
+                        i = Line;
                     }
                 }
                 _line = null;
@@ -670,7 +671,7 @@ namespace HaggisInterpreter2
                         _execute(_l.Trim().Split());
                     }
 
-                    while ((_ = GetNextLine()) != "END IF") { }
+                    while ((_l = GetNextLine()) != "END IF") { }
                 }
             }
 

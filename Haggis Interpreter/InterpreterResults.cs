@@ -14,10 +14,13 @@ namespace Haggis_Interpreter
     public partial class InterpreterResults : Form
     {
         List<string> data;
-        public InterpreterResults(List<string> data)
+        List<string> output;
+       
+        public InterpreterResults(List<string> data, List<string> output)
         {
             InitializeComponent();
             this.data = data;
+            this.output = output;
         }
 
         private void SetupTimerAndGrid()
@@ -82,15 +85,42 @@ namespace Haggis_Interpreter
             richTextBox1.AppendText($"Server Port: {sInfo_A[1].Trim()}\n");
             richTextBox1.AppendText($"Server Traffic Protocol: {sInfo_A[2].Trim()}\n\n");
 
+            sInfo = data.First(f => f.StartsWith("[i_version]"));
+            sInfo = sInfo.Substring(sInfo.IndexOf(']') + 1);
+
+            richTextBox1.AppendText($"Interpreter Version: {sInfo}\n\n");
+
+            sInfo = data.First(f => f.StartsWith("[i_arguments]"));
+            sInfo = sInfo.Substring(sInfo.IndexOf(']') + 1);
+
+            richTextBox1.AppendText($"Interpreter Arguments:\n{sInfo}\n\n");
             sInfo = null;
             sInfo_A = null;
             GC.Collect();
         }
 
+        private void SetupOutputs()
+        {
+            var sb = new StringBuilder();
+            foreach (var line in output)
+            {
+                if(line.StartsWith("[O]"))
+                {
+                    sb.AppendLine(line.Replace("[O]", "").Trim());
+                }
+                else
+                {
+                    sb.AppendLine(line.Replace("[I]", "> ").Trim());
+                }
+            }
+            textBox1.ReadOnly = false;
+            textBox1.Text = sb.ToString();
+            textBox1.ReadOnly = true;
+        }
+
         private void InterpreterResults_Load(object sender, EventArgs e)
         {
-            SetupTimerAndGrid();
-            SetupInfo();
+            SetupTimerAndGrid(); SetupInfo(); SetupOutputs();
         }
     }
 }
