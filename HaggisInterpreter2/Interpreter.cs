@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
-using System.Threading;
-using System.Threading.Tasks;
+using System.Linq;
 
 namespace HaggisInterpreter2
 {
@@ -38,6 +35,8 @@ namespace HaggisInterpreter2
 
         public static int[] errorArea { private set; get; }
         public static string[] errorCaller { private set; get; }
+        private List<StatementBlock> CachedIf { get; set; }
+
 
         private readonly string[] validTypes = {"INTEGER", "CHARACTER", "BOOLEAN", "REAL", "STRING"};
         private readonly Dictionary<string, dynamic> DefaultVal = new Dictionary<string, dynamic>{
@@ -64,6 +63,67 @@ namespace HaggisInterpreter2
         public FLAGS _flags { get; private set; }
         #endregion
 
+        private Tuple<Dictionary<int,string>, Dictionary<int, string>> GenerateStatements(ref int i, string[] _f)
+        {
+            Dictionary<int, string> t = new Dictionary<int, string>(1);
+            Dictionary<int, string> f = new Dictionary<int, string>(1);
+
+            while (i < _f.Length)
+            {
+                _f[i] = _f[i].Trim();
+
+                if (_f[i].StartsWith("IF")) { i = AddIfStatement(ref i, _f); continue; }
+
+                if (_f[i] == "END IF")
+                    break;
+
+                if (_f[i] != "ELSE")
+                {
+                    t.Add(i, _f[i]);
+                }
+                else
+                {
+                    i++;
+                    f.Add(i, _f[i]);
+                }
+
+                i++;
+            }
+            
+
+            return new Tuple<Dictionary<int, string>, Dictionary<int, string>>(t, f);
+        }
+
+        private int AddIfStatement(ref int index, string[] Contents)
+        {
+            var sb = new StatementBlock();
+            string cond = "";
+
+            for (int i = index; i < Contents.Length; i++)
+            {
+                Contents[i] = Contents[i].Trim();
+                if (Contents[i].StartsWith("IF"))
+                {
+                    sb.CondStart = i+1;
+
+                    cond = Contents[i].Replace("IF", "");
+                    cond = cond.Substring(0, cond.LastIndexOf("THEN"));
+
+                    sb.Expression = cond.Trim();
+
+                    i++;
+
+                    var r = GenerateStatements(ref i, Contents);
+                    sb.OnTrue = r.Item1;
+                    sb.OnFalse = r.Item2;
+                    sb.CondEnd = i + 1;
+                    this.CachedIf.Add(sb);
+                    return i + 1;
+                }
+            }
+            return -1;
+        }
+
         public Interpreter(string[] Contents, FLAGS flags)
         {
             //TODO: Remove 'Line' as 'line' is now an internal static variable
@@ -75,6 +135,17 @@ namespace HaggisInterpreter2
             //this.col = 0;
             this._flags = flags;
             this.callStack = new Stack<string>(1);
+
+            int i = 0;
+            if(file.Any(v => v.Contains("IF")))
+            {
+                bool hasElse = file.Any(v => v.Contains("ELSE"));
+
+                this.CachedIf = new List<StatementBlock>(1);
+                AddIfStatement(ref i, Contents);
+            }
+
+            
         }
    
         public static void SetupServer(string ip = null, int port = -1)

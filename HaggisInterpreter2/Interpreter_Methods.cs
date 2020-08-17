@@ -572,9 +572,10 @@ namespace HaggisInterpreter2
         }
 
 
-        private int IfDepth = 0;
         private void If(string expression)
-        {       
+        {
+            int IfDepth = 0;
+
             #region Verticle If Statement
 
             if (expression.StartsWith("IF") && expression.EndsWith("END IF") && expression.Contains("THEN"))
@@ -646,7 +647,16 @@ namespace HaggisInterpreter2
                     bool endHit = false;
 
                     string _l;
-                    while (!(_l = GetNextLine()).Contains("ELSE")) { if (_l.Contains("END IF")) { endHit = true; IfDepth--; break; } }
+                    while (!(_l = GetNextLine()).Contains("ELSE")) 
+                    {
+                        if (_l.StartsWith("IF"))
+                            IfDepth++;
+
+                        if (_l.Contains("END IF")) 
+                        { 
+                            endHit = true; IfDepth--; break; 
+                        } 
+                    }
 
                     if(!endHit)
                     if (_l.StartsWith("ELSE IF"))
@@ -655,13 +665,14 @@ namespace HaggisInterpreter2
                     }
                     else
                     {
-                        while ((_l = GetNextLine()) != "END IF")
-                            _execute(_l.Trim().Split());
-
-                        IfDepth--;
-
-                        //TODO: Why was this line added in the first place?!
-                        //GetNextLine(); 
+                        while (IfDepth > 0)
+                        {
+                            _l = GetNextLine();
+                            if (_l == "END IF")
+                                IfDepth--;
+                            else
+                                _execute(_l.Trim().Split());
+                        }
                     }
                 }
                 else
@@ -670,14 +681,31 @@ namespace HaggisInterpreter2
                     string _l;
                     while (!(_l = GetNextLine()).Contains("ELSE"))
                     {
-                        if (_l == "END IF")
-                            return;
+                        if (_l.StartsWith("IF"))
+                        { 
+                            IfDepth++;
+                        }
+
+                        if (_l.Contains("END IF"))
+                        {
+                            IfDepth--; break;
+                        }
 
                         _execute(_l.Trim().Split());
                     }
-                    
-                    while ((_l = GetNextLine()) != "END IF" && IfDepth > 0) { }
-                    IfDepth--;
+
+                    if (_l.Contains("END IF"))
+                    {
+                        IfDepth--;
+                    }
+
+                    while (IfDepth > 0)
+                    {
+                        _l = GetNextLine();
+
+                        if (_l == "END IF")
+                            IfDepth--;
+                    }
                 }
 
                 if (IfDepth > 0)

@@ -57,6 +57,10 @@ namespace HaggisInterpreter2
     }
 
     #region Blocks
+
+    /// <summary>
+    /// Block ~ A single item or object
+    /// </summary>
     public class Block : IBlock
     {
         public BlockType blockType { get; set; }
@@ -70,6 +74,9 @@ namespace HaggisInterpreter2
         public int OrderNumber { get; set; }
     }
 
+    /// <summary>
+    /// Conditional Block ~ Holds an expression that will be evaluated TRUE or FALSE
+    /// </summary>
     public class ConditionBlock : IBlock
     {
 
@@ -93,6 +100,9 @@ namespace HaggisInterpreter2
         public int OrderNumber { get; set; }
     }
 
+    /// <summary>
+    /// Function Block ~ Holds Metadata on PROCEDURE and FUNCTION
+    /// </summary>
     public class FuncBlock : IBlock
     {
         public BlockType blockType { get; set; }
@@ -103,6 +113,32 @@ namespace HaggisInterpreter2
         public int OrderLevel { get; set; }
         public int OrderNumber { get; set; }
 
+    }
+
+    
+    /// <summary>
+    /// Statement Block ~ Holds the metadata for IF statements
+    /// </summary>
+    public class StatementBlock : IBlock
+    {
+        public BlockType blockType { get; set; }
+
+        public int OrderLevel { get; set; }
+
+        public Value Value { get; set; }
+
+        public string BinaryOp { get; set; }
+
+        public int OrderNumber { get; set; }
+        // END OF CONTRACT
+        
+        public string Expression { get; set; }
+
+        public Dictionary<int, string> OnFalse { get; set; }
+        public Dictionary<int, string> OnTrue { get; set; }
+
+        public int CondStart { get; set; }
+        public int CondEnd { get; set; }
     }
 
     #endregion
@@ -295,8 +331,6 @@ namespace HaggisInterpreter2
                                 if (op_concat == ">=" || op_concat == "<=")
                                 { op = op_concat; i++; }
                             }
-
-
                         }
                     } 
                 }
@@ -354,8 +388,17 @@ namespace HaggisInterpreter2
                     {
                         if (!(_list[_list.Count - 1].GetType().Name == "FuncBlock"))
                         {
-                            
-                            _list.Add(new ConditionBlock { blockType = BlockType.Expression, Value = Value.Zero, CompareOp = op, Left = _val, Right = new Value(expr[safeIndex], true), OrderLevel = orderLevel, OrderNumber = _list.Count });
+                            string expr1 = expr[safeIndex + 1];
+                            string expr0 = expr[safeIndex];
+                            Value Right = Value.Zero;
+
+                            if (!string.IsNullOrEmpty(expr1))
+                                if (!Expression.validComparisons.Contains(expr1) && !Expression.validOperations.Contains(expr1[0]))
+                                    Right = new Value(expr1, true);
+                                else
+                                    Right = new Value(expr0, true);
+
+                            _list.Add(new ConditionBlock { blockType = BlockType.Expression, Value = Value.Zero, CompareOp = op, Left = _val, Right = Right, OrderLevel = orderLevel, OrderNumber = _list.Count });
                             i += 1;
                             if (CanLookAhead(i + 1, max_len))
                             {
@@ -370,9 +413,20 @@ namespace HaggisInterpreter2
                             continue;
                         }
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
-                        _list.Add(new ConditionBlock { blockType = BlockType.Expression, Value = Value.Zero, CompareOp = op, Left = _val, Right = new Value(expr[safeIndex+1], true), OrderLevel = orderLevel, OrderNumber = _list.Count });
+                        string expr1 = expr[safeIndex + 1];
+                        string expr0 = expr[safeIndex];
+                        Value Right = Value.Zero;
+
+                        if(!string.IsNullOrEmpty(expr1))
+                        if (!Expression.validComparisons.Contains(expr1) && !Expression.validOperations.Contains(expr1[0]))
+                            Right = new Value(expr1, true);
+                        else
+                            Right = new Value(expr0, true);
+
+
+                        _list.Add(new ConditionBlock { blockType = BlockType.Expression, Value = Value.Zero, CompareOp = op, Left = _val, Right = Right, OrderLevel = orderLevel, OrderNumber = _list.Count });
                         i += 1;
                         if (CanLookAhead(i + 1, max_len))
                         {
