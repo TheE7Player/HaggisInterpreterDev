@@ -180,7 +180,7 @@ namespace HaggisInterpreter2
             }
             catch (Exception _)
             {
-                throw new Exception(_.Message);
+                Interpreter.Error(_.Message, "");
             }
             finally
             {
@@ -208,7 +208,6 @@ namespace HaggisInterpreter2
 
         private static Value DoExpr(Value l, string op, Value r)
         {
-            // Value l = ((Value)(Object.ReferenceEquals(forceCompare, null) ? this : forceCompare));
 
             if (l.Type != r.Type)
             {
@@ -235,10 +234,10 @@ namespace HaggisInterpreter2
                     return new Value(l.INT + r.INT);
 
                 if (l.Type == ValueType.CHARACTER || l.Type == ValueType.STRING)
-                    throw new Exception("Left opp cannot use + to join text together! Use '&' instead");
+                   HaggisInterpreter2.Interpreter.Error("Left opp cannot use + to join text together! Use '&' instead", l.ToString());
 
                 if (r.Type == ValueType.CHARACTER || r.Type == ValueType.STRING)
-                    throw new Exception("Right opp cannot use + to join text together! Use '&' instead");
+                    HaggisInterpreter2.Interpreter.Error("Right opp cannot use + to join text together! Use '&' instead", r.ToString());
             }
             else if (op.Equals("&"))
             {
@@ -252,7 +251,7 @@ namespace HaggisInterpreter2
                     else if (r.Type == ValueType.CHARACTER)
                         return new Value(l.ToString() + r.CHARACTER);
                     else
-                        throw new Exception($"PROBLEM: Issue with managing characters on left or right hand side ({l},{r})");
+                        HaggisInterpreter2.Interpreter.Error($"PROBLEM: Issue with managing characters on left or right hand side ({l},{r})", op);
             }
             else if (op.Equals("="))
             {
@@ -297,10 +296,10 @@ namespace HaggisInterpreter2
             else
             {
                 if (l.Type == ValueType.STRING)
-                    throw new Exception("Cannot perform requested \"BinOp\" on \"STRING\"");
+                    HaggisInterpreter2.Interpreter.Error("Cannot perform requested \"BinOp\" on \"STRING\"", l.ToString());
 
                 if (l.Type == ValueType.CHARACTER)
-                    throw new Exception("Cannot perform requested \"BinOp\" on \"CHARACTER\"");
+                    HaggisInterpreter2.Interpreter.Error("Cannot perform requested \"BinOp\" on \"CHARACTER\"", l.ToString());
 
                 if (l.Type == ValueType.REAL)
                     switch (op)
@@ -343,7 +342,8 @@ namespace HaggisInterpreter2
                     }
             }
 
-            throw new Exception("Unknown binary operator.");
+            HaggisInterpreter2.Interpreter.Error("Unknown binary operator.", op);
+            return Value.Zero;
         }
 
         #endregion Expression Logic
@@ -463,7 +463,7 @@ namespace HaggisInterpreter2
                             HighestIndex = lvlList.Count - 1;
                         }
                         else
-                            throw new Exception($"Cannot do an operation with the given BinOP, \"{ lvlList[HighestIndex - 1].BinaryOp }\"!");           
+                            Interpreter.Error($"Cannot do an operation with the given BinOP, \"{ lvlList[HighestIndex - 1].BinaryOp }\"!", lvlList[HighestIndex - 1].BinaryOp);           
                     }
 
                     // Handle if there is an BinOP by itself
@@ -504,7 +504,7 @@ namespace HaggisInterpreter2
                         else
                         {
                             if(!lvlList.Any(z => z.blockType == BlockType.BinOp) && lvlList.Count > 2)
-                                throw new Exception("Unable to modify block to suit BinOP Block");
+                                Interpreter.Error("Unable to modify block to suit BinOP Block", "");
 
                             //Send the op and text to a lower level
                             var bin_op = lvlList.First(l => l.blockType == BlockType.BinOp);
@@ -546,6 +546,19 @@ namespace HaggisInterpreter2
                             ConditionBlock cb = lvlList[HighestIndex] as ConditionBlock;
 
                             // First check if any variables here are stored
+
+                            // Problem: If variable is char, covert to string
+
+                            if(cb.Left.Type == ValueType.CHARACTER)
+                            {
+                                cb.Left = cb.Left.Convert(ValueType.STRING);
+                            }
+
+                            if(cb.Right.Type == ValueType.CHARACTER)
+                            {
+                                cb.Right = cb.Right.Convert(ValueType.STRING);
+                            }
+
                             if (cb.Left.Type == ValueType.STRING)
                                 cb.Left = (vals.ContainsKey(cb.Left.STRING)) ? vals[cb.Left.STRING] : cb.Left;
 
@@ -587,7 +600,7 @@ namespace HaggisInterpreter2
                             else 
                             { 
                                 args = string.Join(",", fb.Args);
-                                throw new Exception("Multiple arguments aren't supported in this current build - Please wait till this gets optimised!");
+                                Interpreter.Error("Multiple arguments aren't supported in this current build - Please wait till this gets optimised!", args);
                             }
 
                             var _eval = FuncExtensions(fb.FunctionName, args);
@@ -619,7 +632,7 @@ namespace HaggisInterpreter2
                                 if (notWrapper)
                                 {
                                     if (result.Type != ValueType.BOOLEAN)
-                                        throw new Exception($"Cannot use the NOT wrapper with {result.Type}");
+                                        Interpreter.Error($"Cannot use the NOT wrapper with {result.Type}", result.ToString());
 
                                     result.BOOLEAN = !result.BOOLEAN;
                                 }
@@ -680,7 +693,7 @@ namespace HaggisInterpreter2
                                 if(notWrapper)
                                 {
                                     if (eval.Type != ValueType.BOOLEAN)
-                                        throw new Exception($"Cannot use the NOT wrapper with {eval.Type}");
+                                        Interpreter.Error($"Cannot use the NOT wrapper with {eval.Type}", eval.ToString());
 
                                     eval.BOOLEAN = !eval.BOOLEAN;
                                     return eval;
@@ -754,7 +767,7 @@ namespace HaggisInterpreter2
 
                 if (ReferenceEquals(result, Value.Zero))
                 {
-                    throw new Exception($"Problem identifying the follow pseudo function: {fb.FunctionName}\nHere are the list of them: {string.Join(", ", availableFunctions)}");
+                    Interpreter.Error($"Problem identifying the follow pseudo function: {fb.FunctionName}\nHere are the list of them: {string.Join(", ", availableFunctions)}", fb.FunctionName);
                 }
 
                 return result;
@@ -891,7 +904,7 @@ namespace HaggisInterpreter2
                 Value eval = DoExpr(cb.Left, cb.CompareOp, cb.Right);
 
                 if (eval.Type != ValueType.BOOLEAN)
-                    throw new Exception($"Cannot use the NOT wrapper with {eval.Type}");
+                    Interpreter.Error($"Cannot use the NOT wrapper with {eval.Type}", eval.ToString());
 
                 eval.BOOLEAN = !eval.BOOLEAN;
                 return eval;
@@ -940,7 +953,7 @@ namespace HaggisInterpreter2
 
                 if(ReferenceEquals(result, Value.Zero))
                 {
-                    throw new Exception($"Problem identifying the follow pseudo function: {function}\nHere are the list of them: {string.Join(", ", availableFunctions)}");
+                    Interpreter.Error($"Problem identifying the follow pseudo function: {function}\nHere are the list of them: {string.Join(", ", availableFunctions)}", function);
                 }
 
                 return result;

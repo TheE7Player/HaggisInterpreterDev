@@ -17,9 +17,13 @@ namespace Haggis_Interpreter
     public partial class Form1 : Form
     {
         private const string version = "0.0.1";
-        private readonly string[] keywords = { "SET", "DECLEAR", "SEND", "RECEIVE", "INITIALLY", "DISPLAY", "TO", "AS", "FROM", "KEYBOARD", "END", "IF", "ELSE", "OR", "AND", "NOT", "FUNCTION", "PROCEDURE", "WHILE", "REPEAT", "DO", "UNTIL", "RETURN", "THEN",
-                                               "STRING", "INTEGER", "BOOLEAN", "REAL", "CHARACTER" };
-        private readonly string[] types = { "STRING", "INTEGER", "BOOLEAN", "REAL", "CHARACTER" };
+
+        protected static readonly Dictionary<string, string[]> keywords = new Dictionary<string, string[]>()
+        {
+            { "KEYWORDS_OPEN", new string[] { "SET", "DECLEAR", "SEND", "RECEIVE", "FUNCTION", "PROCEDURE", "WHILE", "REPEAT", "RETURN", "IF" } },
+            { "KEYWORDS_CLOSED", new string[] { "INITIALLY", "DISPLAY", "TO", "AS", "FROM", "KEYBOARD", "END", "ELSE", "OR", "AND", "NOT", "DO", "UNTIL", "THEN"} },
+            { "TYPES", new string[] { "STRING", "INTEGER", "BOOLEAN", "REAL", "CHARACTER"  } }
+        };
 
         private string currentFile = "";
         private bool needsSaved = false;
@@ -55,10 +59,22 @@ namespace Haggis_Interpreter
             interpreterLocationLink.Text = $"Locate Current Interpreter ({Properties.Settings.Default.currentInterpreterVersion})";
         }
 
+        private string GetKeywordsString()
+        {
+            var kw = new StringBuilder();
+            foreach (var item in keywords)
+            {
+                kw.Append($"{string.Join(" ", item.Value)} ");
+            }
+            return kw.ToString();
+        }
+
         private void LexerSetup()
         {
-            _lex = new HaggisLexer(string.Join(" ", keywords));
 
+            _lex = new HaggisLexer(GetKeywordsString());
+  
+            HaggisTextBox.StyleClearAll();
             HaggisTextBox.Margins[0].Width = 50;
 
             HaggisTextBox.Styles[HaggisLexer.StyleDefault].ForeColor = Color.Black;
@@ -304,6 +320,10 @@ namespace Haggis_Interpreter
         string nextAutoWord;
 
         StringBuilder charBuilder = new StringBuilder();
+        string[] availableKeywords;
+        string currentText;
+        string lastText;
+        string idName;
 
         private void HaggisTextBox_CharAdded(object sender, CharAddedEventArgs e)
         {
@@ -333,7 +353,7 @@ namespace Haggis_Interpreter
                         var lenEntered = editor.CurrentPosition - wordStartPos;
 
                         if (!editor.AutoCActive && requireType)
-                            editor.AutoCShow(lenEntered, string.Join(" ", types));
+                            editor.AutoCShow(lenEntered, string.Join(" ", keywords["TYPES"]));
 
                         nextAutoWord = null;
                         requireType = false;
@@ -360,11 +380,34 @@ namespace Haggis_Interpreter
             
             string ch_s = charBuilder.ToString();
 
-            if (ch == '"') { editor.InsertText(currentPos, "\""); editor.GotoPosition((currentPos + 1)-1); return; }
-            if (ch == '[') { editor.InsertText(currentPos, "]"); editor.GotoPosition((currentPos + 1) - 1); return; }
-            if (ch == '(') { editor.InsertText(currentPos, ")"); editor.GotoPosition((currentPos + 1) - 1); return; }
+            if (ch == '"') { editor.InsertText(currentPos, "\""); editor.GotoPosition((currentPos + 1) - 1); return; }
+            if (ch == '[') { editor.InsertText(currentPos, "]"); editor.GotoPosition((currentPos + 1)  - 1); return; }
+            if (ch == '(') { editor.InsertText(currentPos, ")"); editor.GotoPosition((currentPos + 1)  - 1); return; }
 
-            string currentText = editor.Lines[currentLine].Text;
+            currentText = editor.Lines[currentLine].Text;
+            
+            if(currentText.Contains("DECLEAR") || currentText.Contains("SET") || currentText.Contains("RECEIVE"))
+            {
+                idName = editor.Lines[currentLine].Text.Split(' ')[1];
+                if (HaggisLexer.identifiers is null)
+                {
+                    HaggisLexer.identifiers = new System.Collections.Specialized.HybridDictionary();
+
+                    HaggisLexer.identifiers.Add(editor.CurrentLine, idName);
+                }
+                else
+                {
+                    if(!HaggisLexer.identifiers.Contains(editor.CurrentLine))
+                    {
+                        HaggisLexer.identifiers.Add(editor.CurrentLine, idName);
+                    }
+                    else
+                    {
+                        HaggisLexer.identifiers[editor.CurrentLine] = idName;
+                    }
+                }
+            }
+
             if (currentText.Contains("\""))
             {
                 int startRange = currentText.IndexOf('"');
@@ -376,7 +419,11 @@ namespace Haggis_Interpreter
             currentText = null;
             if (char.IsUpper(ch) && !keywordStart)
             {
-                var availablekeywords = keywords.Where(x => x.StartsWith(ch_s));
+
+                if(availableKeywords is null)
+                    availableKeywords = GetKeywordsString().Split(' ');
+
+                var availablekeywords = availableKeywords.Where(x => x.StartsWith(ch_s));
                 int wordStartPos = editor.WordStartPosition(currentPos, true);
 
                 //Display the autocompletion list
@@ -460,7 +507,7 @@ namespace Haggis_Interpreter
                 nextAutoWord = "receive-datatype";
             }
 
-            if ( types.Contains(e.Text) )
+            if ( keywords["TYPES"].Contains(e.Text) )
             {
                 if (!editor.AutoCActive && editor.Lines[editor.CurrentLine].Text.Contains("DECLEAR")) { editor.InsertText(editor.CurrentPosition, " "); editor.GotoPosition(editor.CurrentPosition + 2); editor.AutoCShow(0, "INITIALLY"); }
             }
@@ -505,7 +552,7 @@ namespace Haggis_Interpreter
 
                 editor.GotoPosition(l_idx + new_loc); // Move to the correct position
                 
-                editor.AutoCShow(0, string.Join(" ", types));
+                editor.AutoCShow(0, string.Join(" ", keywords["TYPES"]));
             }
 
             if(e.KeyData == (Keys.Tab | Keys.Control))
@@ -558,6 +605,13 @@ namespace Haggis_Interpreter
                 ResetAuto();
             }
 
+        }
+
+        private void UpdateToolBar()
+        {
+            int caretPos, anchorPos;
+            caretPos = HaggisTextBox.CurrentPosition; anchorPos = HaggisTextBox.AnchorPosition;
+            caretPosition.Text = $"Ch: {caretPos}  Sel: {Math.Abs(anchorPos - caretPos)}";
         }
 
         #endregion
@@ -652,13 +706,6 @@ namespace Haggis_Interpreter
             runREPLToolStripMenuItem.PerformClick();
         }
 
-        private void UpdateToolBar()
-        {
-            int caretPos, anchorPos;
-            caretPos = HaggisTextBox.CurrentPosition; anchorPos = HaggisTextBox.AnchorPosition;
-            caretPosition.Text = $"Ch: {caretPos}  Sel: {Math.Abs(anchorPos - caretPos)}";
-        }
-        
         private void interpreterLocationLink_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
             System.Diagnostics.Process.Start(Path.GetDirectoryName(Properties.Settings.Default.currentInterpreterPath));

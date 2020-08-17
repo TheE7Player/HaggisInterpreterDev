@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Cryptography.X509Certificates;
+using System.Runtime.CompilerServices;
 
 namespace HaggisInterpreter2
 {
@@ -166,7 +166,6 @@ namespace HaggisInterpreter2
                     catch (Exception _)
                     {
                         Error(_.Message, joinedExpression);
-                        return true;
                     }
                     Error($"Expected a keyword, but got: {executionLine[0]} instead!", executionLine[0]);
                     return true;       
@@ -235,7 +234,7 @@ namespace HaggisInterpreter2
             }
         }
 
-        public static void Error(string message, string fault)
+        public static void Error(string message, string fault, [CallerMemberName] string callerName = "", [CallerLineNumber] int callerLine = 0)
         {
             /* Order:
                 [0] = Line fault
@@ -243,7 +242,8 @@ namespace HaggisInterpreter2
                 [2] = Length of fault
             */
             int columnFault = GetColumnFault(fault);
-            errorArea = new int[] { line, columnFault, fault.Length };
+            errorArea = new int[] { line, columnFault, fault.Length};
+            errorCaller = new string[] { callerName, callerLine.ToString() };
             executionHandled = true;
             throw new Exception(message);
         }
@@ -571,12 +571,15 @@ namespace HaggisInterpreter2
             SendSocketMessage("variable_inpt", $"{varName}|{input}");
         }
 
+
+        private int IfDepth = 0;
         private void If(string expression)
         {       
             #region Verticle If Statement
 
             if (expression.StartsWith("IF") && expression.EndsWith("END IF") && expression.Contains("THEN"))
             {
+                IfDepth++;
                 Column = GetColumnFault("IF");
                 string condition_expression = expression.Substring(3, expression.IndexOf("THEN") - 3).Trim();
                 Column = GetColumnFault(condition_expression);
@@ -629,7 +632,7 @@ namespace HaggisInterpreter2
 
             if (expression.StartsWith("IF") && expression.EndsWith("THEN"))
             {
-                //TODO: Handle if 'ELSE' or 'END IF' isn't included?
+                IfDepth++;
 
                 Column = GetColumnFault("IF");
                 string condition_expression = expression.Substring(3, expression.IndexOf("THEN") - 3).Trim();
@@ -643,7 +646,7 @@ namespace HaggisInterpreter2
                     bool endHit = false;
 
                     string _l;
-                    while (!(_l = GetNextLine()).Contains("ELSE")) { if (_l.Contains("END IF")) { endHit = true; break; } }
+                    while (!(_l = GetNextLine()).Contains("ELSE")) { if (_l.Contains("END IF")) { endHit = true; IfDepth--; break; } }
 
                     if(!endHit)
                     if (_l.StartsWith("ELSE IF"))
@@ -654,7 +657,9 @@ namespace HaggisInterpreter2
                     {
                         while ((_l = GetNextLine()) != "END IF")
                             _execute(_l.Trim().Split());
-                        
+
+                        IfDepth--;
+
                         //TODO: Why was this line added in the first place?!
                         //GetNextLine(); 
                     }
@@ -670,9 +675,14 @@ namespace HaggisInterpreter2
 
                         _execute(_l.Trim().Split());
                     }
-
-                    while ((_l = GetNextLine()) != "END IF") { }
+                    
+                    while ((_l = GetNextLine()) != "END IF" && IfDepth > 0) { }
+                    IfDepth--;
                 }
+
+                if (IfDepth > 0)
+                    Error($"UNRESOLVED BALANCE IN IF STATEMENT - MISSING END IF OR CALCUATION PROBLEM WITH INTERPRETER", expression);
+
             }
 
             #endregion Horizontal If Statement

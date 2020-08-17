@@ -11,7 +11,7 @@ namespace HaggisInterpreter2Run
 {
     internal class Program
     {
-        private static readonly string build = "0.9.1";
+        private static readonly string build = "0.9.2";
         private static bool ignoreTitles = false;
         private static bool runSocket = false;
         private static void Title(string file = "")
@@ -208,6 +208,8 @@ namespace HaggisInterpreter2Run
                     {
                         Console.WriteLine($"[{i - 1}] {_stack[i - 1]}");
                     }
+
+                    Console.WriteLine($"DEV DETAILS\nCaller Method:{Interpreter.errorCaller[0]}\nCalled at Line: {Interpreter.errorCaller[1]}");
 
                     fileFault = null;
                 }

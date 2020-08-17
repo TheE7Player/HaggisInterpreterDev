@@ -142,7 +142,17 @@ namespace HaggisInterpreter2
                         break;
 
                     case ValueType.STRING:
-                        this = new Value(REAL.ToString());
+                        if(this.Type == ValueType.REAL)
+                            this = new Value(REAL.ToString());
+
+                        if (this.Type == ValueType.BOOLEAN)
+                            this = new Value((this.BOOLEAN)?"TRUE":"FALSE");
+
+                        if (this.Type == ValueType.INTEGER)
+                            this = new Value(this.INT.ToString());
+
+                        if (this.Type == ValueType.CHARACTER)
+                            this = new Value(this.CHARACTER.ToString());
                         break;
                 }
             }
