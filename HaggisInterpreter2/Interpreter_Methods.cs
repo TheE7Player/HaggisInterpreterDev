@@ -29,7 +29,7 @@ namespace HaggisInterpreter2
 
                 callStack.Push(fn_ref.Name);
 
-                int normalLine = line;
+                int normalLine = Line;
 
                 int StartAt = function[fn_ref];
                 int EndAt = fn_ref.FunctionEnd;
@@ -91,7 +91,7 @@ namespace HaggisInterpreter2
                 _line = null;
                 foreach (var item in _variables) { this.variables.Remove(item.Key); }
                 callStack.Pop();
-                line = normalLine;
+                Line = normalLine;
 
                 if (fn_ref.type == FuncMetaData.Type.FUNCTION)
                     return funcReturn;
@@ -174,21 +174,44 @@ namespace HaggisInterpreter2
 
         private string GetNextLine(int ForceIndex = -1, bool Trim = true)
         {
+
+            char[] trimArray = new char[] { '\r', '\n', '\t', ' ' };
             if (ForceIndex > -1)
             {
                 if (ForceIndex > file.Length)
                     throw new Exception($"Supplied ForceIndex has succeeded past the max value (Interpreter called for {ForceIndex}, but max is: {file.Length})");
 
-                line = ForceIndex;
                 Line = ForceIndex;
             }
 
-            while (line < file.Length)
+            if (!(this.CommentsRanges is null))
             {
-                if (file[line].Trim().StartsWith("#") || string.IsNullOrEmpty(file[line]))
+                for (int i = 0; i < this.CommentsRanges.Count; i++)
                 {
-                    line++; Line++;
-                    continue;
+                    if (this.CommentsRanges[i].InRange(Line))
+                    {
+                        Line = this.CommentsRanges[i].End+1;
+                        break;
+                    }
+                }
+            }
+
+            while (Line < file.Length)
+            {
+
+                file[Line] = file[Line].Trim(trimArray);
+                if (file[Line].Trim().StartsWith("#") || string.IsNullOrEmpty(file[Line]))
+                {
+
+                    if ((Line + 1) < file.Length)
+                    {
+                        Line++;
+                        continue;
+                    }
+                    else
+                    {
+                        break;
+                    }
                 }
                 else
                 {
@@ -196,11 +219,14 @@ namespace HaggisInterpreter2
                 }
             }
 
-            if (line == file.Length)
+            if (Line == file.Length || (Line + 1) > file.Length)
                 return null;
+            else
+            {
+                Line++;
+            }
 
-            line++; Line++;
-            return (Trim) ? file[line - 1].Trim() : file[line - 1];
+            return (Trim) ? file[Line - 1].Trim() : file[Line - 1];
         }
 
         public void Execute()
@@ -226,7 +252,7 @@ namespace HaggisInterpreter2
         {
             try
             {
-                return file[line - 1].Trim().IndexOf(toFind);
+                return file[Line - 1].Trim().IndexOf(toFind);
             }
             catch (Exception)
             {
@@ -242,7 +268,7 @@ namespace HaggisInterpreter2
                 [2] = Length of fault
             */
             int columnFault = GetColumnFault(fault);
-            errorArea = new int[] { line, columnFault, fault.Length};
+            errorArea = new int[] { Line, columnFault, fault.Length};
             errorCaller = new string[] { callerName, callerLine.ToString() };
             executionHandled = true;
             throw new Exception(message);
@@ -463,7 +489,7 @@ namespace HaggisInterpreter2
             }
 
             if (_flags.DebugSendRequests)
-                Log($"LINE {line}: {exp}");
+                Log($"LINE {Line}: {exp}");
             else
                 Log(exp.ToString());
         }
@@ -571,8 +597,12 @@ namespace HaggisInterpreter2
             SendSocketMessage("variable_inpt", $"{varName}|{input}");
         }
 
-
-        private void If(string expression)
+        #region Old IF Method
+        /*
+         
+            OLD IF
+            
+            private void If(string expression)
         {
             int IfDepth = 0;
 
@@ -638,6 +668,11 @@ namespace HaggisInterpreter2
                 Column = GetColumnFault("IF");
                 string condition_expression = expression.Substring(3, expression.IndexOf("THEN") - 3).Trim();
                 Column = GetColumnFault(condition_expression);
+
+                var ifVariable = CachedIf.First(x => line == x.CondStart);
+
+                var newResult = Expression.PerformExpression(this.variables, ifVariable.Expression);
+
                 var result = Expression.PerformExpression(this.variables, condition_expression);
 
                 // If false, skip to when we reach `ELSE` case
@@ -713,13 +748,129 @@ namespace HaggisInterpreter2
 
             }
 
+         */
+        #endregion
+
+
+        private bool ifJumpOutClause = false;
+        private int ifJumpDepth = 0;
+        private void If(string expression)
+        {
+            ifJumpDepth++;
+            #region Verticle If Statement
+
+            if (System.Text.RegularExpressions.Regex.Match(expression, @"IF\s(.+)\sTHEN\s(.+)", System.Text.RegularExpressions.RegexOptions.IgnoreCase).Success)
+            {
+                if (expression.StartsWith("IF") && expression.EndsWith("END IF") && expression.Contains("THEN"))
+                {
+
+                    Column = GetColumnFault("IF");
+                    string condition_expression = expression.Substring(3, expression.IndexOf("THEN") - 3).Trim();
+                    Column = GetColumnFault(condition_expression);
+                    var result = Expression.PerformExpression(this.variables, condition_expression);
+                    string trueExpression;
+                    string falseExpression;
+
+                    //Avoid evaluation on horiz. IF statment if it evaluates to false (No need to waste cpu cycles)
+                    if (!expression.Contains("ELSE") && result.BOOLEAN == false)
+                        return;
+
+                    int tIndex = expression.IndexOf("THEN") + 4;
+                    int tIndexEnd = expression.LastIndexOf("ELSE");
+                    int fIndexEnd = expression.LastIndexOf("END");
+
+                    if (expression.Contains("ELSE"))
+                    {
+                        trueExpression = expression.Substring(tIndex, tIndexEnd - tIndex).Trim();
+
+                        if (MoreThanOneFunction(trueExpression))
+                        {
+                            Column = GetColumnFault(trueExpression);
+                            Error("EXPRESSION FAULT: HAD MORE THAN 1 STATEMENT IN A SINGLE LINE, USE VERTICAL IF STATEMENT INSTEAD", trueExpression);
+                            return;
+                        }
+
+                        falseExpression = expression.Substring(tIndexEnd + 4, fIndexEnd - (tIndexEnd + 4)).Trim();
+
+                        if (MoreThanOneFunction(falseExpression))
+                        {
+                            Column = GetColumnFault(falseExpression);
+                            Error("EXPRESSION FAULT: HAD MORE THAN 1 STATEMENT IN A SINGLE LINE, USE VERTICAL IF STATEMENT INSTEAD", trueExpression);
+                            return;
+                        }
+
+                        if (result.BOOLEAN == true)
+                        { _execute(trueExpression.Split()); return; }
+                        else
+                        { _execute(falseExpression.Split()); return; }
+                    }
+                    else
+                        trueExpression = expression.Substring(tIndex, fIndexEnd - tIndex).Trim();
+
+                    _execute(trueExpression.Split());
+                }
+                else
+                {
+                    Error("MISSING 'END IF' OR 'THEN' IN YOUR IF STATEMENT DECLEARATION", expression);
+                }
+            }
+
+            #endregion Verticle If Statement
+
+            #region Horizontal If Statement
+
+            if (expression.StartsWith("IF") && expression.EndsWith("THEN"))
+            {
+
+                Column = GetColumnFault("IF");
+                string condition_expression = expression.Substring(3, expression.IndexOf("THEN") - 3).Trim();
+                Column = GetColumnFault(condition_expression);
+                StatementBlock ifVariable = null;
+
+                try
+                {
+                    ifVariable = CachedIf.First(x => Line == x.CondStart);
+                }
+                catch (Exception)
+                {
+
+                    Error("PROBLEM WITH FINDING IF STATEMENT - FAULT IN INTERPRETER OR MISBALANCED IF STATEMENT", condition_expression);
+                }
+                
+                Value result = Expression.PerformExpression(this.variables, ifVariable.Expression);
+                Dictionary<int, string> result_group = (result.BOOLEAN) ? ifVariable.OnTrue : ifVariable.OnFalse;
+
+                foreach (KeyValuePair<int, string> l in result_group)
+                {
+                    Line = l.Key;
+
+                    if (l.Value.Trim().StartsWith("RETURN"))
+                    { 
+                        Line--; 
+                        ifJumpOutClause = true;
+                        ifJumpDepth--;
+                        return; 
+                    }
+
+                    if (!ifJumpOutClause && ifJumpDepth > 0)
+                    { _execute(l.Value.Trim().Split()); Line++; }
+                }
+                
+                ifJumpDepth--;
+
+                if (!ifJumpOutClause && ifJumpDepth < 1)
+                    Line = ifVariable.CondEnd + 1;
+
+                if (ifJumpDepth < 1)
+                    ifJumpOutClause = false;
+            }
             #endregion Horizontal If Statement
         }
 
         private void Loop(bool isRepeatLoop = true)
         {
 
-            int iterStart = line;
+            int iterStart = Line;
             string condition = string.Empty;
 
             bool Exit = false;
@@ -743,8 +894,7 @@ namespace HaggisInterpreter2
                         }
                         else
                         {
-                            line = iterStart;
-                            Line = line;
+                            Line = iterStart;
                         }
                     }
                     else 
@@ -761,17 +911,17 @@ namespace HaggisInterpreter2
                 // WHILE loop
                 string _line;
 
-                if (!(file[line - 1].EndsWith("DO")))
+                if (!(file[Line - 1].EndsWith("DO")))
                 {
-                    if(!(file[line - 1].StartsWith("DO")))
+                    if(!(file[Line - 1].StartsWith("DO")))
                     {
-                        var words = file[line - 1].Split();
+                        var words = file[Line - 1].Split();
                         Column = GetColumnFault(words[words.Length - 1]);
                         Error("Missing expression ender for WHILE loop - Please a 'DO' after expression", words[words.Length - 1]);
                     }
                 }
 
-                condition = file[line-1].Substring(6);
+                condition = file[Line - 1].Substring(6);
                 condition = condition.Substring(0, condition.Length - 2).Trim();
 
                 Value result = Expression.PerformExpression(variables, condition);
@@ -791,8 +941,7 @@ namespace HaggisInterpreter2
                         }
                         else
                         {
-                            line = iterStart;
-                            Line = line;
+                            Line = iterStart;
                         }
                     }
                     else
@@ -859,7 +1008,7 @@ namespace HaggisInterpreter2
                     ArgTypes = pTypes.ToArray(),
                     returnType = _t,
                     ArgValues = argVal
-                }, line + 1);
+                }, Line + 1);
 
             }
             else 
@@ -870,7 +1019,7 @@ namespace HaggisInterpreter2
                     type = FuncMetaData.Type.PROCEDURE,
                     ArgTypes = pTypes.ToArray(),
                     ArgValues = argVal
-                }, line + 1); 
+                }, Line + 1); 
             }
 
             pTypes = null; argVal = null; _var = null; _dmeta = null;
@@ -885,7 +1034,7 @@ namespace HaggisInterpreter2
                     var v = function.First(x => x.Key.Name == funcName).Value;
                     function.Remove(k);
 
-                    k.FunctionEnd = line;
+                    k.FunctionEnd = Line;
                     function.Add(k, v);
                     break;
                 }

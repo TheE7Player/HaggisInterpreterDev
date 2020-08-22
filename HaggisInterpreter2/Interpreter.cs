@@ -6,9 +6,8 @@ namespace HaggisInterpreter2
 {
     public partial class Interpreter
     {
-#pragma warning disable IDE0044 // Add readonly modifier
         internal static string[] file;
-#pragma warning restore IDE0044 // Add readonly modifier
+
         public static bool executionHandled = false;
 
         public Dictionary<string, Value> variables { private set; get; }
@@ -18,7 +17,6 @@ namespace HaggisInterpreter2
 
         public static HSocket server { get; private set; }
 
-        internal static int line;
         public static int Line;
         public static int Column;
 
@@ -37,7 +35,20 @@ namespace HaggisInterpreter2
         public static string[] errorCaller { private set; get; }
         private List<StatementBlock> CachedIf { get; set; }
 
+        internal struct CommentRange
+        {
+            public int Start;
+            public int End;
+            public bool InRange(int currentIndex)
+            {
+                if (currentIndex >= Start && currentIndex <= End)
+                    return true;
+                else
+                    return false;
+            }
+        }
 
+        private List<CommentRange> CommentsRanges;
         private readonly string[] validTypes = {"INTEGER", "CHARACTER", "BOOLEAN", "REAL", "STRING"};
         private readonly Dictionary<string, dynamic> DefaultVal = new Dictionary<string, dynamic>{
             {"INTEGER", 0 },
@@ -67,41 +78,83 @@ namespace HaggisInterpreter2
         {
             Dictionary<int, string> t = new Dictionary<int, string>(1);
             Dictionary<int, string> f = new Dictionary<int, string>(1);
+            int ifStatementStart = 0;
+            int lastIndex = 0;
 
             while (i < _f.Length)
             {
+                if (i >= 0)
+                    lastIndex = i;
+                else 
+                { 
+                    Error("PROBLEM PARSING IF STATEMENT - FAULT IN INTERPRETER OR MISBALANCED IF STATEMENT", _f[lastIndex]);
+                    break;
+                }
+
                 _f[i] = _f[i].Trim();
 
-                if (_f[i].StartsWith("IF")) { i = AddIfStatement(ref i, _f); continue; }
+                if (_f[i].StartsWith("IF")) 
+                {
+                    ifStatementStart = i + 1;
+                    i = AddIfStatement(ref i, _f, true); 
+                    t.Add(ifStatementStart, _f[ifStatementStart-1]);
+                    continue;
+                }
 
+                //(_f[i-1] == "END IF" || string.IsNullOrEmpty(_f[i])
                 if (_f[i] == "END IF")
+                {
                     break;
+                }
+
+                if(_f[i].StartsWith("ELSE IF"))
+                {
+                    ifStatementStart = i + 1;
+                    _f[i] = _f[i].Replace("ELSE", "").Trim();
+                    i = AddIfStatement(ref i, _f, true);
+                    f.Add(ifStatementStart, _f[ifStatementStart - 1]);
+                    continue;
+                }
 
                 if (_f[i] != "ELSE")
                 {
-                    t.Add(i, _f[i]);
+                    t.Add(i + 1, _f[i]);
                 }
                 else
                 {
                     i++;
-                    f.Add(i, _f[i]);
+                    f.Add(i + 1, _f[i]);
                 }
 
                 i++;
             }
             
-
             return new Tuple<Dictionary<int, string>, Dictionary<int, string>>(t, f);
         }
 
-        private int AddIfStatement(ref int index, string[] Contents)
+        private int AddIfStatement(ref int index, string[] Contents, bool closeOnFind = false)
         {
             var sb = new StatementBlock();
             string cond = "";
+            char[] trimArray = new char[] { '\r', '\n', '\t', ' ' };
 
             for (int i = index; i < Contents.Length; i++)
             {
-                Contents[i] = Contents[i].Trim();
+                Contents[i] = Contents[i].Trim(trimArray);
+                
+                if(Contents[i].StartsWith("###"))
+                {
+                    for (int z = i + 1; z < Contents.Length; z++)
+                    {
+                        Contents[z] = Contents[z].Trim(trimArray);
+                        if (Contents[z].StartsWith("###"))
+                        {
+                            i = z;
+                            break;
+                        }
+                    }
+                }
+
                 if (Contents[i].StartsWith("IF"))
                 {
                     sb.CondStart = i+1;
@@ -117,8 +170,10 @@ namespace HaggisInterpreter2
                     sb.OnTrue = r.Item1;
                     sb.OnFalse = r.Item2;
                     sb.CondEnd = i + 1;
-                    this.CachedIf.Add(sb);
-                    return i + 1;
+                    this.CachedIf.Add(sb.Copy());
+                    
+                    if(closeOnFind)
+                        return i + 1;
                 }
             }
             return -1;
@@ -130,13 +185,14 @@ namespace HaggisInterpreter2
             file = Contents;
             this.variables = new Dictionary<string, Value>(1);
             function = new Dictionary<FuncMetaData, int>(1);
-            line = 0;
             Line = 0;
             //this.col = 0;
             this._flags = flags;
             this.callStack = new Stack<string>(1);
-
+            this.CommentsRanges = new List<CommentRange>(2);
+            
             int i = 0;
+
             if(file.Any(v => v.Contains("IF")))
             {
                 bool hasElse = file.Any(v => v.Contains("ELSE"));
@@ -144,7 +200,46 @@ namespace HaggisInterpreter2
                 this.CachedIf = new List<StatementBlock>(1);
                 AddIfStatement(ref i, Contents);
             }
+            
+            char[] trimArray = new char[] { '\r', '\n', '\t', ' ' };
+            int rS, rE = 0;
+            for (int z = 0; z < file.Length; z++)
+            {
+                if (file[z].Trim(trimArray).StartsWith("###"))
+                {
+                    rS = z;
+                    for (int y = z + 1; y < file.Length; y++)
+                    {
+                        if (file[y].Trim(trimArray).StartsWith("###"))
+                        {
+                            rE = y;
+                            z = y;
+                            break;
+                        }
+                    }
 
+                    this.CommentsRanges.Add(new CommentRange { Start = rS, End = rE });
+                    continue;
+                }
+
+                if (file[z].Trim(trimArray).StartsWith("#"))
+                {
+                    rS = z;
+
+                    for (int y = z; y < file.Length; y++)
+                    {
+                        if (!file[y].Trim(trimArray).StartsWith("#"))
+                        {
+                            rE = y;
+                            z = y;
+                            break;
+                        }
+                    }
+
+                    this.CommentsRanges.Add(new CommentRange { Start = rS, End = rE });
+                    continue;
+                }
+            }
             
         }
    

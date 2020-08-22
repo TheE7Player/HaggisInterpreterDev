@@ -11,7 +11,7 @@ namespace HaggisInterpreter2Run
 {
     internal class Program
     {
-        private static readonly string build = "0.9.2";
+        private static readonly string build = "0.9.3";
         private static bool ignoreTitles = false;
         private static bool runSocket = false;
         private static void Title(string file = "")
@@ -187,8 +187,8 @@ namespace HaggisInterpreter2Run
                     sb = null;
 
                     Console.WriteLine("\n ============================ \n");
-                    var lineNumber = new System.Diagnostics.StackTrace(e, true).GetFrame(1).GetFileLineNumber();
-                    var fileFault = new System.Diagnostics.StackTrace(e, true).GetFrame(1).GetFileName();
+                    var lineNumber = new System.Diagnostics.StackTrace(e, true).GetFrame(2).GetFileLineNumber();
+                    var fileFault = new System.Diagnostics.StackTrace(e, true).GetFrame(2).GetFileName();
                     Console.WriteLine($"INTERAL INFORMATION:\n{Path.GetFileNameWithoutExtension(fileFault)} @ {lineNumber}\n({e.Message})");
 
                     if (basic.variables.Count == 0)

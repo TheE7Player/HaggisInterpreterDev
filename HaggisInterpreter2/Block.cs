@@ -139,6 +139,25 @@ namespace HaggisInterpreter2
 
         public int CondStart { get; set; }
         public int CondEnd { get; set; }
+
+        public StatementBlock Copy()
+        {
+            StatementBlock sb = new StatementBlock();
+            sb.blockType = this.blockType;
+            sb.OrderLevel = this.OrderLevel;
+            sb.Value = this.Value;
+            sb.BinaryOp = this.BinaryOp;
+            sb.OrderNumber = this.OrderNumber;
+            sb.Expression = this.Expression;
+            sb.OnFalse = this.OnFalse;
+            sb.OnTrue = this.OnTrue;
+
+            sb.CondStart = this.CondStart;
+            sb.CondEnd = this.CondEnd;
+
+            return sb;
+        }
+
     }
 
     #endregion
@@ -423,10 +442,12 @@ namespace HaggisInterpreter2
                         if (!Expression.validComparisons.Contains(expr1) && !Expression.validOperations.Contains(expr1[0]))
                             Right = new Value(expr1, true);
                         else
-                            Right = new Value(expr0, true);
+                            if((safeIndex + 1) == expr.Length - 1)  // [!] Added length for end characters which could be '-' or '+' etc
+                                Right = new Value(expr1, true);
+                            else
+                                Right = new Value(expr0, true);
 
-
-                        _list.Add(new ConditionBlock { blockType = BlockType.Expression, Value = Value.Zero, CompareOp = op, Left = _val, Right = Right, OrderLevel = orderLevel, OrderNumber = _list.Count });
+                            _list.Add(new ConditionBlock { blockType = BlockType.Expression, Value = Value.Zero, CompareOp = op, Left = _val, Right = Right, OrderLevel = orderLevel, OrderNumber = _list.Count });
                         i += 1;
                         if (CanLookAhead(i + 1, max_len))
                         {
