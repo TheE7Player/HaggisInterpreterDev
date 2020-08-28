@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HaggisInterpreter2Run", "Ha
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HaggisInterpreterExe", "Haggis Interpreter\HaggisInterpreterExe.csproj", "{81EB2B79-2D00-40DC-BF32-C172803549FD}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HIUnitTest", "HIUnitTest\HIUnitTest.csproj", "{FA51A7EA-47BF-46E6-AF70-990033A981E2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{81EB2B79-2D00-40DC-BF32-C172803549FD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{81EB2B79-2D00-40DC-BF32-C172803549FD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{81EB2B79-2D00-40DC-BF32-C172803549FD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FA51A7EA-47BF-46E6-AF70-990033A981E2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FA51A7EA-47BF-46E6-AF70-990033A981E2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FA51A7EA-47BF-46E6-AF70-990033A981E2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FA51A7EA-47BF-46E6-AF70-990033A981E2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

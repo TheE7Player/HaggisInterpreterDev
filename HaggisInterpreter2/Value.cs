@@ -15,10 +15,38 @@ namespace HaggisInterpreter2
     {
         #region Meta Data
 
-        public static readonly Value Zero = new Value(0);
+        public static Value Zero = new Value(0);
         public ValueType Type { get; set; }
 
         #endregion Meta Data
+
+        #region Override Operators
+        public static bool operator ==(Value a, Value b)
+        {
+            bool matchingType = a.Type == b.Type;
+
+            if (!matchingType) return false;
+
+            switch (a.Type)
+            {
+                case ValueType.REAL:
+                    return (a.REAL == b.REAL);
+                case ValueType.STRING:
+                    return (a.STRING == b.STRING);
+                case ValueType.INTEGER:
+                    return (a.INT == b.INT);
+                case ValueType.BOOLEAN:
+                    return (a.BOOLEAN == b.BOOLEAN);
+                case ValueType.CHARACTER:
+                    return (a.CHARACTER == b.CHARACTER);
+                default:
+                    return true;
+            }
+        }
+
+        public static bool operator !=(Value a, Value b) => (!(a==b));
+
+        #endregion
 
         #region Data types
 

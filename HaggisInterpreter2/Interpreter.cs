@@ -61,6 +61,7 @@ namespace HaggisInterpreter2
         #region INTERPRETER_FLAGS
         public struct FLAGS
         {
+
             /// <summary>
             /// INTERPRETER FLAG: Flag which prints the line in the script when it calls a print function (SEND)
             /// </summary>
