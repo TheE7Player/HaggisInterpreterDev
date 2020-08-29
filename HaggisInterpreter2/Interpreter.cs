@@ -158,24 +158,71 @@ namespace HaggisInterpreter2
 
                 if (Contents[i].StartsWith("IF"))
                 {
-                    sb.CondStart = i+1;
+                    if (!System.Text.RegularExpressions.Regex.Match(Contents[i], @"IF\s(.+)\sTHEN\s(.+)", System.Text.RegularExpressions.RegexOptions.IgnoreCase).Success)
+                    {
+                        sb.CondStart = i + 1;
 
-                    cond = Contents[i].Replace("IF", "");
-                    cond = cond.Substring(0, cond.LastIndexOf("THEN"));
+                        cond = Contents[i].Replace("IF", "");
+                        cond = cond.Substring(0, cond.LastIndexOf("THEN"));
 
-                    sb.Expression = cond.Trim();
+                        sb.Expression = cond.Trim();
 
-                    i++;
+                        i++;
 
-                    var r = GenerateStatements(ref i, Contents);
-                    sb.OnTrue = r.Item1;
-                    sb.OnFalse = r.Item2;
-                    sb.CondEnd = i + 1;
-                    this.CachedIf.Add(sb.Copy());
-                    
-                    if(closeOnFind)
-                        return i + 1;
-                }
+                        var r = GenerateStatements(ref i, Contents);
+                        sb.OnTrue = r.Item1;
+                        sb.OnFalse = r.Item2;
+
+                        if ((i + 1) < Contents.Length)
+                        {
+                            while (!Contents[i].Trim(trimArray).StartsWith("END IF")) 
+                            { 
+                                if ((i + 1) < Contents.Length) 
+                                { i++; } 
+                                else { break; } 
+                            }
+                        }
+                        else
+                        {
+                            // Chance where the index goes to the same length ignoring n - 1 rule
+                            if (i == Contents.Length)
+                                i--;
+
+                            if (!Contents[i].Trim(trimArray).StartsWith("END IF"))
+                                Error("EXPECTED 'END IF' - END IF WAS NEVER RESOLVED", Contents[i], "AddIfStatement");
+                        }
+
+                        sb.CondEnd = i;
+                        this.CachedIf.Add(sb.Copy());
+
+                        if (closeOnFind)
+                            return i;
+
+                    }
+                    else
+                    {
+                        sb.CondStart = i;
+                        sb.CondEnd = i;
+
+                        cond = Contents[i].Replace("IF", "");
+                        cond = cond.Substring(0, cond.LastIndexOf("THEN"));
+
+                        sb.Expression = cond.Trim();
+
+
+                        string c = Contents[i];
+                        c = c.Substring(c.IndexOf("THEN") + 4).Replace("END IF", "").Trim();
+                        sb.OnTrue = new Dictionary<int, string>() { { i, c } };
+
+                        c = null;
+
+                        this.CachedIf.Add(sb.Copy());
+
+                        if (closeOnFind)
+                            return i;
+                    }
+                } 
+                
             }
             return -1;
         }

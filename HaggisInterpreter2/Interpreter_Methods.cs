@@ -16,7 +16,7 @@ namespace HaggisInterpreter2
             return (count > 1);
         }
 
-        private Value? RunMacro (Value call, bool returnValueBack)
+        internal static Value? RunMacro (Value call, Interpreter hRef)
         {
             Value funcReturn = new Value();
 
@@ -27,7 +27,7 @@ namespace HaggisInterpreter2
             {
                 var fn_ref = function.Keys.First(x => x.Name == call.OTHER.Substring(3));
 
-                callStack.Push(fn_ref.Name);
+                hRef.callStack.Push(fn_ref.Name);
 
                 int normalLine = Line;
 
@@ -36,7 +36,7 @@ namespace HaggisInterpreter2
 
                 var _variables = fn_ref.ArgValues;
 
-                foreach (var item in _variables) { this.variables.Add(item.Key, item.Value); }
+                foreach (var item in _variables) { hRef.variables.Add(item.Key, item.Value); }
 
                 string _line;
                 bool Exit = false;
@@ -44,7 +44,7 @@ namespace HaggisInterpreter2
 
                 for (int i = StartAt; i <= EndAt; i++)
                 {
-                    if ((_line = GetNextLine((i - 1))) != null)
+                    if ((_line = hRef.GetNextLine((i - 1))) != null)
                     {
                         if (Exit || _line.Trim().StartsWith(end_cond))
                             break;
@@ -54,17 +54,17 @@ namespace HaggisInterpreter2
 
                         if (fn_ref.type == FuncMetaData.Type.FUNCTION) 
                         { 
-                            if (_line.Trim().StartsWith("RETURN") || variables.ContainsKey("RETURNVAL"))
+                            if (_line.Trim().StartsWith("RETURN") || hRef.variables.ContainsKey("RETURNVAL"))
                             {
                                 Exit = true;
 
                                 // There is a chance where a function may only have a one line return
                                 // In this case, we need to call first
-                                if(!variables.ContainsKey("RETURNVAL"))
-                                    Exit = _execute(_line.Split());
+                                if(!hRef.variables.ContainsKey("RETURNVAL"))
+                                    Exit = hRef._execute(_line.Split());
 
-                                funcReturn = variables["RETURNVAL"];
-                                variables.Remove("RETURNVAL");
+                                funcReturn = hRef.variables["RETURNVAL"];
+                                hRef.variables.Remove("RETURNVAL");
 
                                 if(funcReturn.Type != fn_ref.returnType)
                                 {
@@ -84,13 +84,13 @@ namespace HaggisInterpreter2
                             }
                         }
                         
-                        Exit = _execute(_line.Split());
+                        Exit = hRef._execute(_line.Split());
                         i = Line;
                     }
                 }
                 _line = null;
-                foreach (var item in _variables) { this.variables.Remove(item.Key); }
-                callStack.Pop();
+                foreach (var item in _variables) { hRef.variables.Remove(item.Key); }
+                hRef.callStack.Pop();
                 Line = normalLine;
 
                 if (fn_ref.type == FuncMetaData.Type.FUNCTION)
@@ -150,16 +150,16 @@ namespace HaggisInterpreter2
                     if(executionLine[0] == "RETURN")
                     {
                         var ep = string.Join(" ", executionLine.Skip(1));
-                        var result = Expression.PerformExpression(variables, ep);
+                        var result = Expression.PerformExpression(this, ep);
                         variables.Add("RETURNVAL", result);
                         return true;
                     }
 
                     try
                     {
-                        var attempt = Expression.PerformExpression(variables, joinedExpression);
+                        var attempt = Expression.PerformExpression(this, joinedExpression);
 
-                        RunMacro(attempt, false);
+                        RunMacro(attempt, this);
 
                         return false;
                     }
@@ -190,7 +190,7 @@ namespace HaggisInterpreter2
                 {
                     if (this.CommentsRanges[i].InRange(Line))
                     {
-                        Line = this.CommentsRanges[i].End+1;
+                        Line = this.CommentsRanges[i].End;
                         break;
                     }
                 }
@@ -252,7 +252,7 @@ namespace HaggisInterpreter2
         {
             try
             {
-                return file[Line - 1].Trim().IndexOf(toFind);
+                return file.ToList().IndexOf(toFind);
             }
             catch (Exception)
             {
@@ -382,7 +382,7 @@ namespace HaggisInterpreter2
                     if (exp_type.Equals(Expression.ExpressionType.EXPRESSION))
                     {
                         Column = GetColumnFault(express);
-                        var result = Expression.PerformExpression(this.variables, express);
+                        var result = Expression.PerformExpression(this, express);
                         variables.Add(var_name, result);
                         SendSocketMessage("variable_decl", $"{var_name}|{result}");
                         return;
@@ -417,7 +417,7 @@ namespace HaggisInterpreter2
                     Error($"ASSIGNMENT FAULT: NEEDED \"TO\" TO ASSIGN A VARIABLE, GOT {information[2]} INSTEAD!", information[2]);
                 }
 
-                var result = Expression.PerformExpression(this.variables, String.Join(" ", express));
+                var result = Expression.PerformExpression(this, String.Join(" ", express));
 
                 if (!variables.ContainsKey(information[1]))
                 {
@@ -425,7 +425,7 @@ namespace HaggisInterpreter2
                     {
                         if(result.OTHER.StartsWith("FN-"))
                         {
-                            Value? r = RunMacro(result, true);
+                            Value? r = RunMacro(result, this);
 
                             if (!ReferenceEquals(r, null))
                                 result = (Value)r;
@@ -477,12 +477,12 @@ namespace HaggisInterpreter2
             express = express.Replace("TO DISPLAY", "").Trim();
 
             Column = GetColumnFault(express);
-            var exp = Expression.PerformExpression(this.variables, express);
+            var exp = Expression.PerformExpression(this, express);
 
             if(!(exp.OTHER is null))
             if(exp.OTHER.StartsWith("FN-"))
             {
-                var r = RunMacro(exp, true);
+                var r = RunMacro(exp, this);
 
                 if (!(r is null))
                     exp = (Value)r;
@@ -751,7 +751,6 @@ namespace HaggisInterpreter2
          */
         #endregion
 
-
         private bool ifJumpOutClause = false;
         private int ifJumpDepth = 0;
         private void If(string expression)
@@ -767,7 +766,7 @@ namespace HaggisInterpreter2
                     Column = GetColumnFault("IF");
                     string condition_expression = expression.Substring(3, expression.IndexOf("THEN") - 3).Trim();
                     Column = GetColumnFault(condition_expression);
-                    var result = Expression.PerformExpression(this.variables, condition_expression);
+                    var result = Expression.PerformExpression(this, condition_expression);
                     string trueExpression;
                     string falseExpression;
 
@@ -800,14 +799,15 @@ namespace HaggisInterpreter2
                         }
 
                         if (result.BOOLEAN == true)
-                        { _execute(trueExpression.Split()); return; }
+                        { _execute(trueExpression.Split()); ifJumpDepth--; return; }
                         else
-                        { _execute(falseExpression.Split()); return; }
+                        { _execute(falseExpression.Split()); ifJumpDepth--; return; }
                     }
                     else
                         trueExpression = expression.Substring(tIndex, fIndexEnd - tIndex).Trim();
 
                     _execute(trueExpression.Split());
+                    ifJumpDepth--;
                 }
                 else
                 {
@@ -837,7 +837,7 @@ namespace HaggisInterpreter2
                     Error("PROBLEM WITH FINDING IF STATEMENT - FAULT IN INTERPRETER OR MISBALANCED IF STATEMENT", condition_expression);
                 }
                 
-                Value result = Expression.PerformExpression(this.variables, ifVariable.Expression);
+                Value result = Expression.PerformExpression(this, ifVariable.Expression);
                 Dictionary<int, string> result_group = (result.BOOLEAN) ? ifVariable.OnTrue : ifVariable.OnFalse;
 
                 foreach (KeyValuePair<int, string> l in result_group)
@@ -853,7 +853,12 @@ namespace HaggisInterpreter2
                     }
 
                     if (!ifJumpOutClause && ifJumpDepth > 0)
-                    { _execute(l.Value.Trim().Split()); Line++; }
+                    {
+                        _execute(l.Value.Trim().Split()); 
+                        
+                        if(!ifJumpOutClause)
+                            Line++;
+                    }
                 }
                 
                 ifJumpDepth--;
@@ -886,7 +891,7 @@ namespace HaggisInterpreter2
                         if(object.ReferenceEquals(condition, string.Empty))
                             condition = _line.Substring(6);
 
-                        Value result = Expression.PerformExpression(variables, condition);
+                        Value result = Expression.PerformExpression(this, condition);
 
                         if (!result.BOOLEAN)
                         {
@@ -924,7 +929,7 @@ namespace HaggisInterpreter2
                 condition = file[Line - 1].Substring(6);
                 condition = condition.Substring(0, condition.Length - 2).Trim();
 
-                Value result = Expression.PerformExpression(variables, condition);
+                Value result = Expression.PerformExpression(this, condition);
 
                 if (!result.BOOLEAN)
                     return;
@@ -933,7 +938,7 @@ namespace HaggisInterpreter2
                 {
                     if (_line.StartsWith("END WHILE"))
                     {
-                        result = Expression.PerformExpression(variables, condition);
+                        result = Expression.PerformExpression(this, condition);
 
                         if (!result.BOOLEAN)
                         {

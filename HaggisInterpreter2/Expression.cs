@@ -372,10 +372,12 @@ namespace HaggisInterpreter2
             return newarr.ToArray();
         }
 
-        public static Value PerformExpression(Dictionary<string, Value> vals, string expression, bool alreadyEvaluated = false)
+        public static Value PerformExpression(Interpreter HaggisInterp, string expression, bool alreadyEvaluated = false)
         {
             //TODO: FIX EMPTY SPACES IN TEXT STRING
             bool notWrapper = false;
+
+            var vals = HaggisInterp.variables;
 
             string[] exp;
             if (alreadyEvaluated)
@@ -485,12 +487,12 @@ namespace HaggisInterpreter2
                             _op = lvlList[location].BinaryOp;
 
                             if (GetBlockType(lvlList[location - 1]) == "Function")
-                                _left = FuncEval(lvlList[location - 1], false, vals);
+                                _left = FuncEval(lvlList[location - 1], false, HaggisInterp);
                             else
                                 _left = (vals.ContainsKey(lvlList[location - 1].Value.ToString())) ? vals[lvlList[location - 1].Value.ToString()] : lvlList[location - 1].Value;
 
                             if (GetBlockType(lvlList[location + 1]) == "Function")
-                                _right = FuncEval(lvlList[location + 1], false, vals);
+                                _right = FuncEval(lvlList[location + 1], false, HaggisInterp);
                             else
                                 _right = (vals.ContainsKey(lvlList[location + 1].Value.ToString())) ? vals[lvlList[location + 1].Value.ToString()] : lvlList[location + 1].Value;
 
@@ -600,10 +602,24 @@ namespace HaggisInterpreter2
                             else 
                             { 
                                 args = string.Join(",", fb.Args);
-                                Interpreter.Error("Multiple arguments aren't supported in this current build - Please wait till this gets optimised!", args);
+                                //Interpreter.Error("Multiple arguments aren't supported in this current build - Please wait till this gets optimised!", args);
                             }
 
-                            var _eval = FuncExtensions(fb.FunctionName, args);
+                            var _eval = FuncExtensions(fb.FunctionName, args, HaggisInterp);
+
+                            if(_eval == Value.Zero)
+                            {
+                                _eval = FuncEval(lvlList[HighestIndex], notWrapper, HaggisInterp);
+
+                                try
+                                {
+                                    _eval = (Value)Interpreter.RunMacro(_eval, HaggisInterp);
+                                }
+                                catch (Exception)
+                                {
+                                    Interpreter.Error("PROBLEM OCCURED WITH DEALING WITH FUNCTION/PROCEDURE", args);
+                                }
+                            }
 
                             lvlList.RemoveAt(HighestIndex);
                             HighestIndex = ((lvlList.Count - 1) > 0) ? HighestIndex = lvlList.Count - 1 : 0;
@@ -644,7 +660,7 @@ namespace HaggisInterpreter2
                                 if (lvlList[HighestIndex - 1].blockType == BlockType.Variable)
                                     left = vals[lvlList[HighestIndex - 1].Value.ToString()];
                                 else if (lvlList[HighestIndex - 1].blockType == BlockType.Function)
-                                    left = FuncEval(lvlList[HighestIndex - 1], notWrapper, vals);
+                                    left = FuncEval(lvlList[HighestIndex - 1], notWrapper, HaggisInterp);
                                 else
                                     left = lvlList[HighestIndex - 1].Value;
                             }
@@ -660,7 +676,7 @@ namespace HaggisInterpreter2
                                 if (lvlList[HighestIndex].blockType == BlockType.Variable)
                                     right = vals[lvlList[HighestIndex].Value.ToString()];
                                 else if (lvlList[HighestIndex].blockType == BlockType.Function)
-                                    left = FuncEval(lvlList[HighestIndex], notWrapper, vals);
+                                    left = FuncEval(lvlList[HighestIndex], notWrapper, HaggisInterp);
                                 else
                                     right = lvlList[HighestIndex].Value;
                             }
@@ -733,11 +749,11 @@ namespace HaggisInterpreter2
                 var fn = blocks[0] as FuncBlock;
                 if (isPreDefined(fn.FunctionName))
                 {
-                    var result = PreDefinedFunctions(fn.FunctionName, expression, vals);
+                    var result = PreDefinedFunctions(fn.FunctionName, expression, HaggisInterp);
                     return result;
                 }
                 else
-                    return FuncEval(blocks[0], notWrapper, vals);
+                    return FuncEval(blocks[0], notWrapper, HaggisInterp);
             }
             else
                 return blocks[0].Value;         
@@ -754,7 +770,7 @@ namespace HaggisInterpreter2
             };
         }
 
-        private static Value FuncEval(IBlock block, bool isNotOperator, Dictionary<string, Value> vals)
+        private static Value FuncEval(IBlock block, bool isNotOperator, Interpreter interpreter)
         {
 
             FuncBlock fb = block as FuncBlock;
@@ -763,7 +779,8 @@ namespace HaggisInterpreter2
 
             if(isPreDefined(fb.FunctionName))
             {
-                var result = PreDefinedFunctions(fb.FunctionName, string.Join(",", fb.Args), vals);
+                var argus = (fb.Args is null) ? "" : string.Join(",", fb.Args);
+                var result = PreDefinedFunctions(fb.FunctionName, argus, interpreter);
 
                 if (ReferenceEquals(result, Value.Zero))
                 {
@@ -798,12 +815,12 @@ namespace HaggisInterpreter2
                 if (fb.Args.Length == 1)
                 {
                     args = fb.Args[0];
-                    args = (vals.ContainsKey(args)) ? vals[args].ToString() : fb.Args[0];
+                    args = (interpreter.variables.ContainsKey(args)) ? interpreter.variables[args].ToString() : fb.Args[0];
 
                     Value val;
 
                     if (args.Split(' ').Any(c => validOperations.Contains(c[0]) || validComparisons.Contains(c)))
-                        val = PerformExpression(vals, args, true);
+                        val = PerformExpression(interpreter, args, true);
                     else
                         val = new Value(args, true);
 
@@ -843,7 +860,7 @@ namespace HaggisInterpreter2
 
                     for (int i = 0; i < fb.Args.Length; i++)
                     {
-                        val = new Value(vals.ContainsKey(fb.Args[i]) ? vals[fb.Args[i]].ToString() : fb.Args[i], true);
+                        val = new Value(interpreter.variables.ContainsKey(fb.Args[i]) ? interpreter.variables[fb.Args[i]].ToString() : fb.Args[i], true);
 
                         if (meta.ArgTypes[i] != val.Type.ToString())
                             Interpreter.Error($"WRONG PARAMETER DATA TYPE USED FOR {k[i]}, EXPECTED {meta.ArgTypes[i]}", fb.Args[i]);
@@ -863,7 +880,7 @@ namespace HaggisInterpreter2
             if (isNotOperator)
             {
 
-                Value eval = FuncExtensions(fb.FunctionName, args);
+                Value eval = FuncExtensions(fb.FunctionName, args, interpreter);
 
                 if (eval.Type != ValueType.BOOLEAN)
                     Interpreter.Error($"Cannot use the NOT wrapper with {eval.Type} from function: {fb.FunctionName}", fb.FunctionName);
@@ -872,7 +889,7 @@ namespace HaggisInterpreter2
                 return eval;
             }
 
-            return FuncExtensions(fb.FunctionName, args);
+            return FuncExtensions(fb.FunctionName, args, interpreter);
         }
 
         private static Value CondEval(IBlock block, bool isNotOperator, Dictionary<string, Value> vals)
@@ -944,12 +961,12 @@ namespace HaggisInterpreter2
         };
         private static bool isPreDefined(string subject) => availableFunctions.Any(e => e.Name == subject);
         
-        private static Value FuncExtensions(string function, string expression)
+        private static Value FuncExtensions(string function, string expression, Interpreter interpreter)
         {
             // Deal with Pseudo/Pre-Defined Function(s) first
             if(isPreDefined(function))
             {
-                var result = PreDefinedFunctions(function, expression);
+                var result = PreDefinedFunctions(function, expression, interpreter);
 
                 if(ReferenceEquals(result, Value.Zero))
                 {
@@ -959,10 +976,10 @@ namespace HaggisInterpreter2
                 return result;
             }
 
-            return new Value();
+            return Value.Zero;
         }
 
-        private static Value PreDefinedFunctions(string fun, string ex, Dictionary<string,Value> val = null)
+        private static Value PreDefinedFunctions(string fun, string ex, Interpreter interpreter)
         {
             Value result = Value.Zero;
 
@@ -978,7 +995,7 @@ namespace HaggisInterpreter2
             #region String functions
             if (fun == "Lower" || fun == "Upper" || fun == "Trim")
             {
-                result = PerformExpression(val, ex);
+                result = PerformExpression(interpreter, ex);
 
                 switch (fun)
                 {
@@ -1048,7 +1065,7 @@ namespace HaggisInterpreter2
                         result = new Value(d.Millisecond);
                         break;
                 }
-                if (!result.Equals(Value.Zero))
+                if (result != Value.Zero)
                     return result;
             }
             #endregion
@@ -1056,7 +1073,7 @@ namespace HaggisInterpreter2
             #region Type conversions
             if(fun == "INT")
             {
-                Value express = PerformExpression(val, ex);
+                Value express = PerformExpression(interpreter, ex);
 
                 if(!availableFunctions.Where(y => y.Name == "INT").Any(x => x.ArgTypes.Contains(express.Type.ToString())))
                 {
@@ -1090,7 +1107,7 @@ namespace HaggisInterpreter2
 
             if (fun == "REAL")
             {
-                Value express = PerformExpression(val, ex);
+                Value express = PerformExpression(interpreter, ex);
 
                 // Fix the expression if it results back to REAL
                 if (express.Type == ValueType.REAL && express.REAL % 1 == 0)

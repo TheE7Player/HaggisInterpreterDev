@@ -11,7 +11,7 @@ namespace HaggisInterpreter2Run
 {
     internal class Program
     {
-        private static readonly string build = "0.9.3";
+        private static readonly string build = "0.9.4";
         private static bool ignoreTitles = false;
         private static bool runSocket = false;
         private static void Title(string file = "")

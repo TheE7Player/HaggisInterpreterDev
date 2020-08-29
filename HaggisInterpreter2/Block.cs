@@ -263,24 +263,26 @@ namespace HaggisInterpreter2
 
                             while (i < max_len)
                             {
-                                if (expr[i] == ")")                                                        
+                                if (expr[i] == ")")
                                 {
                                     if (!(i == expr.Length - 1 || Expression.validOperations.Contains((expr[i + 1][0]))))
-                                        continue;
+                                    { continue; }
 
                                     if (i != last_bracket)
                                     { i++; continue; }
 
-                                    if(arg_sb.Length > 0)
+                                    if (arg_sb.Length > 0)
                                     {
                                         args.Add(arg_sb.ToString().Trim());
                                         arg_sb.Clear();
                                         i++;
                                     }
-                                    break; 
+                                    break;
                                 }
                                 else
-                                    i++;
+                                {
+                                     i++;
+                                }
 
                                 if (arg_sb.Length == 0)
                                     arg_sb.Append(expr[i - 1]);
