@@ -1,0 +1,22 @@
+# RepeatLoop by James G.
+
+SET number TO 0
+
+# Now we iterate
+REPEAT
+	SET newNumber TO number + 1
+	SEND "number was " & number & ", but is now: " & newNumber TO DISPLAY
+	SET number TO newNumber
+UNTIL number < 5
+
+# Now we test input
+REPEAT
+	SEND "Welcome! I will keep annoying you until you say QUIT!" TO DISPLAY
+	RECEIVE input FROM (STRING) KEYBOARD
+UNTIL NOT(Lower(input) = "quit")
+
+# Now test another function (str)
+SEND "Insert your name in lowcaps, so I can shout your name..." TO DISPLAY
+RECEIVE name FROM (STRING) KEYBOARD
+SEND "HELLO " & Upper(name) & ", HOW ARE YOU DOING?!" TO DISPLAY
+

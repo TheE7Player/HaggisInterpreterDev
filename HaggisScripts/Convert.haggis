@@ -1,0 +1,3 @@
+SET x TO REAL((3+5)*10)
+
+SEND x TO DISPLAY

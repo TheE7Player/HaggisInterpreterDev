@@ -1,0 +1,13 @@
+# Initial Set by James G.
+
+DECLEAR x AS INTEGER INITIALLY 1
+DECLEAR y AS INTEGER INITIALLY 2
+
+DECLEAR text AS STRING INITIALLY "HELLO THERE " & 4
+
+DECLEAR result AS INTEGER INITIALLY x + y + 3
+
+SEND "Result is " & result & ", That's great!" TO DISPLAY
+SEND "5 Plus 5 will equal: " & 5 + 5 TO DISPLAY
+
+SEND text & " <- Thats from the variable 'text'" TO DISPLAY

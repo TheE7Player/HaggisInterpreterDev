@@ -1,0 +1,12 @@
+#from "Pseudocode for Higher Computing Science Question Papers"
+
+#<DEBUG: [c]-40>
+
+SEND "C to F degrees Calculator! Type in any 'C' to find what it is in F!" TO DISPLAY
+
+RECEIVE c FROM (REAL) KEYBOARD
+
+SET f TO (c * (9 / 5)) + 32
+
+SEND f TO DISPLAY
+

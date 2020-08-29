@@ -1,0 +1,62 @@
+# RestrictionsByAge.haggis by James G.
+
+SEND "WHAT YOU CAN DO BASED IN YOUR AGE IN SCOTLAND" TO DISPLAY
+SEND "What is your age" TO DISPLAY
+RECEIVE age FROM (INTEGER) KEYBOARD
+
+PROCEDURE result (INTEGER i)
+
+	IF i >= 18 THEN
+        IF i <= 25 THEN
+            SEND "Can drink alcohol legally (ID card required for proof)" TO DISPLAY
+        ELSE
+            SEND "Can drink alcohol legally (ID card not required)" TO DISPLAY
+        END IF
+    ELSE
+        SEND "Cannot drink alcohol legally" TO DISPLAY
+    END IF
+	
+	IF i >= 16 THEN
+        SEND "Can set driving lessons" TO DISPLAY
+    ELSE
+        SEND "Cannot set driving lessons" TO DISPLAY
+    END IF
+	
+	IF i >= 8 THEN
+        SEND "Can be found guilty of a criminal offense" TO DISPLAY
+    ELSE
+        SEND "Cannot be found guilty of a criminal offense (Depends on severity)" TO DISPLAY
+    END IF
+
+    IF i >= 11 THEN
+        SEND "Can apply for a Scot Young Card" TO DISPLAY
+    ELSE
+        SEND "Cannot apply for a Scot Young Card (Too young)" TO DISPLAY
+    END IF
+
+    IF i >= 11 THEN
+        SEND "Can apply for a Scot Young Card" TO DISPLAY
+    ELSE
+        SEND "Cannot apply for a Scot Young Card (Too young)" TO DISPLAY
+    END IF
+
+    IF i >= 12 THEN
+        SEND "Can pay a solicitor and take on a court case" TO DISPLAY
+    ELSE
+        SEND "Cannot pay a solicitor and take on a court case (Too young)" TO DISPLAY
+    END IF
+	
+	IF i >= 13 AND i <= 14 THEN
+        IF i <> 14 THEN
+            SEND "You can be employed by doing light work (assuming it bylaws the law & local authority)" TO DISPLAY
+        ELSE
+            SEND "You can do work as long as its short hours during school etc" TO DISPLAY
+        END IF
+    END IF
+	
+	IF i < 16 THEN SEND "You are not considered a young adult" TO DISPLAY ELSE SEND "You are considered a young adult or adult" TO DISPLAY END IF
+	
+END PROCEDURE
+
+# Run/Call the procedure
+result(age)

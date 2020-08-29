@@ -1,0 +1,18 @@
+# WhileLoop by James G
+
+# Unlike the "REPEAT ... WHILE" Loop, This first checks the condition then executes
+# "REPEAT ... WHILE" loop executes first then checks the condition
+
+# The example is HAGGIS code from the Higher CS exam (2015)
+
+SET total TO 0
+SET count TO 0
+
+WHILE count < 10 DO
+  SEND "Please enter score " & (count + 1) & "/10 :" TO DISPLAY
+  RECEIVE nextInput FROM (INTEGER) KEYBOARD
+  SET total TO total + nextInput
+  SET count TO count + 1
+END WHILE
+
+SEND total / 10 TO DISPLAY

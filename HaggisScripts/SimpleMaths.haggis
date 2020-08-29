@@ -1,0 +1,42 @@
+# SimpleMath.haggis by James G. :)
+
+FUNCTION ABS (REAL val) RETURNS REAL
+	
+	IF val > 0 THEN
+		RETURN val
+	ELSE
+		RETURN val * -1
+	END IF
+	
+END FUNCTION
+
+FUNCTION ADD(INTEGER a, INTEGER b) RETURNS INTEGER
+
+	RETURN a + b
+
+END FUNCTION
+
+FUNCTION Multi(CHARACTER op, INTEGER a, INTEGER b) RETURNS INTEGER
+
+	IF op = '-' THEN
+		RETURN a - b
+	ELSE IF op = '+' THEN
+		RETURN a + b
+	ELSE IF op = '/' THEN
+		RETURN a / b
+	ELSE IF op = '*' THEN
+		RETURN a * b
+	END IF
+
+END FUNCTION
+
+# TESTING FUNCTION ASSIGNMENT AND ANONYMOUS FUNCTION RETURN
+SET X TO ABS(-20.0)
+SEND "Explicitly Typed X is " & X TO DISPLAY
+SEND "Anonymous Called Function is " & ABS(20.0) TO DISPLAY
+
+SEND "ADD function with (5, 5) is " & ADD(5, 5) TO DISPLAY
+SEND "Multi function with ('-', 5, 10) is " & Multi('-', 5, 10) TO DISPLAY
+SEND "Multi function with ('+', 5, 10) is " & Multi('+', 5, 10) TO DISPLAY
+SEND "Multi function with ('/', 5, 10) is " & Multi('/', 5, 10) TO DISPLAY
+SEND "Multi function with ('*', 5, 10) is " & Multi('*', 5, 10) TO DISPLAY

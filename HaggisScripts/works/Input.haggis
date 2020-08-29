@@ -1,0 +1,28 @@
+# Input test by James G.
+
+# Using interpreter flags to auto input our results (quicker)
+#<DEBUG: [name]-James>
+#<DEBUG: [age]-20>
+#<DEBUG: [passBirthday]-TRUE>
+
+# Print out our task to display
+SEND "TESTING INPUT FUNCTIONALITY..." TO DISPLAY
+
+# Show a message of what to input
+SEND "PLEASE ENTER YOUR NAME: " TO DISPLAY
+RECEIVE name FROM (STRING) KEYBOARD
+
+SEND "PLEASE ENTER YOUR AGE, " & name & ":" TO DISPLAY
+RECEIVE age FROM (INTEGER) KEYBOARD
+
+DECLEAR yearBorn AS INTEGER INITIALLY 2020 - age
+
+SEND "Did you have your birthday yet?" TO DISPLAY
+RECEIVE passBirthday FROM (BOOLEAN) KEYBOARD
+
+IF passBirthday = FALSE THEN
+	SET yearBorn TO yearBorn - 1
+END IF
+
+# Display back the variables
+SEND "Thank you: " & name & "! Your " & age & " year's old! (" & yearBorn & ")" TO DISPLAY

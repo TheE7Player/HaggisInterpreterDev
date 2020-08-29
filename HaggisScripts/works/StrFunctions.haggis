@@ -1,0 +1,11 @@
+# Demo of string functions by James G.
+
+# SET noParamCheck TO Lower()
+
+SET lowercase TO Lower("TO LOWER CASE")
+SET highercase TO "to higher case"
+
+SEND "Lower() is: " & lowercase TO DISPLAY
+SEND "Upper() is: " & Upper(highercase) TO DISPLAY
+SEND "Trim() is: " & Trim(" a  b  c  d ") TO DISPLAY
+SEND "Title() is: " & Title("python is pretty cool, but this interpreter is done in c sharp") TO DISPLAY

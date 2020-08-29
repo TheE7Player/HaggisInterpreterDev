@@ -1,0 +1,13 @@
+# Manual Set by James G.
+
+DECLEAR myVar AS REAL
+
+SEND "BEFORE:" TO DISPLAY
+SEND "myVar is: " & myVar TO DISPLAY
+
+# Now we set it a number
+SET myVar TO 50.0 
+# (50 is an INTEGER, you could use REAL(50) as a get around! )
+
+SEND "AFTER:" TO DISPLAY
+SEND "myVar is: " & myVar TO DISPLAY

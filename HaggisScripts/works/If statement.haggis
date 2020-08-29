@@ -1,0 +1,47 @@
+# If statement testing for Haggis by James G.
+
+#<DEBUG: PRINT_LINE_NUMBER>
+
+# Set a variable 'temperature' which stores '35.5'
+DECLEAR temperature AS REAL INITIALLY 35.5
+
+# Now valid the responce
+
+# Test 1: Horizontal Condition
+IF temperature > 10.0 THEN SEND "temperature is more than 10 degrees c!" TO DISPLAY ELSE SEND "temperature is less than 10 degrees c!" TO DISPLAY END IF
+
+# Test 2: Vertical Condition (With 'Else' caluse)
+IF temperature > 40.0 THEN
+   SEND "temperature is more than 40 degress c" TO DISPLAY
+ELSE
+   SEND "temperature isn't more than 40 degress c - its actually: " & temperature TO DISPLAY
+END IF
+
+# Test 3: 2 comparisons
+
+SEND "temperature was: " & temperature & " and will now be set to: 7" TO DISPLAY
+SET temperature TO 7
+
+IF temperature > 10.0 AND temperature < 40.0 THEN
+	SEND "temperature is between 10c and 40c" TO DISPLAY
+ELSE
+	SEND "temperature isn't between 10c and 40c" TO DISPLAY
+END IF
+
+# Test 4: Not operator (Not operator works different in HAGGIS)
+
+# Using the NOT function wrapper
+IF NOT (temperature = 10) THEN SEND "temperature isn't 10, it's " & temperature TO DISPLAY END IF
+
+# Using the NOT operator instead of the wrapper
+IF temperature != 5 THEN
+SEND "temperature isn't 5 either, it's " & temperature TO DISPLAY
+END IF
+
+# Test 5: OR operator with extra IF
+IF temperature = 15 OR temperature < 5 THEN
+	SEND "temperature is 15 or is under 5" TO DISPLAY
+ELSE IF temperature = 7 THEN
+	SEND "temperature is exactly 7!" TO DISPLAY
+	SEND "How cool is that?" TO DISPLAY
+END IF

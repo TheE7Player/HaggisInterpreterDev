@@ -1,0 +1,38 @@
+# Script by James G
+
+# Set the values
+SET d TO DAY()
+SET m TO MONTH()
+SET y TO YEAR()
+
+SET h TO "Hour is: " & HOURS()
+SET M TO MINUTES()
+SET s TO SECONDS()
+SET ms TO MILISECONDS()
+
+# Declear the function (method)
+PROCEDURE DISPLAYDATE (INTEGER day, INTEGER month, INTEGER year)
+	SEND day & "/" & month & "/" & year TO DISPLAY
+END PROCEDURE
+
+PROCEDURE DISPLAYDATEWITHLOG (INTEGER day, INTEGER month, INTEGER year)
+	Log(day & "/" & month & "/" & year)
+END PROCEDURE
+
+PROCEDURE ShowTime (STRING message, INTEGER amount)
+	Log(message & "	" & amount)
+END PROCEDURE
+
+PROCEDURE Log(STRING text)
+	SEND text TO DISPLAY
+END PROCEDURE
+
+# Call/Invoke the function (method)
+DISPLAYDATE(d, m, y)
+SEND "DISPLAYWITHLOG:" TO DISPLAY
+DISPLAYDATEWITHLOG(d, m, y)
+
+Log(h)
+ShowTime("Minute is:", M)
+ShowTime("Seconds is:", s)
+ShowTime("Miliseconds is:", ms)
