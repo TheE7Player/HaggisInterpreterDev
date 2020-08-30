@@ -615,9 +615,9 @@ namespace HaggisInterpreter2
                                 {
                                     _eval = (Value)Interpreter.RunMacro(_eval, HaggisInterp);
                                 }
-                                catch (Exception)
+                                catch (Exception _)
                                 {
-                                    Interpreter.Error("PROBLEM OCCURED WITH DEALING WITH FUNCTION/PROCEDURE", args);
+                                    Interpreter.Error($"PROBLEM OCCURED WITH DEALING WITH FUNCTION/PROCEDURE: {_.Message}", args);
                                 }
                             }
 

@@ -75,7 +75,7 @@ namespace HaggisInterpreter2
         public FLAGS _flags { get; private set; }
         #endregion
 
-        private Tuple<Dictionary<int,string>, Dictionary<int, string>> GenerateStatements(ref int i, string[] _f)
+        private Tuple<Dictionary<int,string>, Dictionary<int, string>> GenerateStatements(ref int i, ref string[] _f)
         {
             Dictionary<int, string> t = new Dictionary<int, string>(1);
             Dictionary<int, string> f = new Dictionary<int, string>(1);
@@ -105,6 +105,8 @@ namespace HaggisInterpreter2
                 //(_f[i-1] == "END IF" || string.IsNullOrEmpty(_f[i])
                 if (_f[i] == "END IF")
                 {
+                    if (!((i + 1) > _f.Length - 1))
+                        i++;
                     break;
                 }
 
@@ -119,12 +121,12 @@ namespace HaggisInterpreter2
 
                 if (_f[i] != "ELSE")
                 {
-                    t.Add(i + 1, _f[i]);
+                    t.Add(i, _f[i]);
                 }
                 else
                 {
                     i++;
-                    f.Add(i + 1, _f[i]);
+                    f.Add(i, _f[i]);
                 }
 
                 i++;
@@ -169,13 +171,13 @@ namespace HaggisInterpreter2
 
                         i++;
 
-                        var r = GenerateStatements(ref i, Contents);
+                        var r = GenerateStatements(ref i, ref Contents);
                         sb.OnTrue = r.Item1;
                         sb.OnFalse = r.Item2;
 
-                        if ((i + 1) < Contents.Length)
+                        if (i < Contents.Length)
                         {
-                            while (!Contents[i].Trim(trimArray).StartsWith("END IF")) 
+                            while (!Contents[i-1].Trim(trimArray).StartsWith("END IF")) 
                             { 
                                 if ((i + 1) < Contents.Length) 
                                 { i++; } 

@@ -252,7 +252,10 @@ namespace HaggisInterpreter2
         {
             try
             {
-                return file.ToList().IndexOf(toFind);
+                if((Line - 1) < 0)
+                    return file.ToList().IndexOf(toFind);
+
+                return file[Line - 1].IndexOf(toFind);
             }
             catch (Exception)
             {
@@ -596,160 +599,6 @@ namespace HaggisInterpreter2
 
             SendSocketMessage("variable_inpt", $"{varName}|{input}");
         }
-
-        #region Old IF Method
-        /*
-         
-            OLD IF
-            
-            private void If(string expression)
-        {
-            int IfDepth = 0;
-
-            #region Verticle If Statement
-
-            if (expression.StartsWith("IF") && expression.EndsWith("END IF") && expression.Contains("THEN"))
-            {
-                IfDepth++;
-                Column = GetColumnFault("IF");
-                string condition_expression = expression.Substring(3, expression.IndexOf("THEN") - 3).Trim();
-                Column = GetColumnFault(condition_expression);
-                var result = Expression.PerformExpression(this.variables, condition_expression);
-                string trueExpression;
-                string falseExpression;
-
-                //Avoid evaluation on horiz. IF statment if it evaluates to false (No need to waste cpu cycles)
-                if (!expression.Contains("ELSE") && result.BOOLEAN == false)
-                    return;
-
-                int tIndex = expression.IndexOf("THEN") + 4;
-                int tIndexEnd = expression.LastIndexOf("ELSE");
-                int fIndexEnd = expression.LastIndexOf("END");
-
-                if (expression.Contains("ELSE"))
-                {
-                    trueExpression = expression.Substring(tIndex, tIndexEnd - tIndex).Trim();
-
-                    if (MoreThanOneFunction(trueExpression))
-                    {
-                        Column = GetColumnFault(trueExpression);
-                        Error("EXPRESSION FAULT: HAD MORE THAN 1 STATEMENT IN A SINGLE LINE, USE VERTICAL IF STATEMENT INSTEAD", trueExpression);
-                        return;
-                    }
-
-                    falseExpression = expression.Substring(tIndexEnd + 4, fIndexEnd - (tIndexEnd + 4)).Trim();
-
-                    if (MoreThanOneFunction(falseExpression))
-                    {
-                        Column = GetColumnFault(falseExpression);
-                        Error("EXPRESSION FAULT: HAD MORE THAN 1 STATEMENT IN A SINGLE LINE, USE VERTICAL IF STATEMENT INSTEAD", trueExpression);
-                        return;
-                    }
-
-                    if (result.BOOLEAN == true)
-                    { _execute(trueExpression.Split()); return; }
-                    else
-                    { _execute(falseExpression.Split()); return; }
-                }
-                else
-                    trueExpression = expression.Substring(tIndex, fIndexEnd - tIndex).Trim();
-
-                _execute(trueExpression.Split());
-            }
-
-            #endregion Verticle If Statement
-
-            #region Horizontal If Statement
-
-            if (expression.StartsWith("IF") && expression.EndsWith("THEN"))
-            {
-                IfDepth++;
-
-                Column = GetColumnFault("IF");
-                string condition_expression = expression.Substring(3, expression.IndexOf("THEN") - 3).Trim();
-                Column = GetColumnFault(condition_expression);
-
-                var ifVariable = CachedIf.First(x => line == x.CondStart);
-
-                var newResult = Expression.PerformExpression(this.variables, ifVariable.Expression);
-
-                var result = Expression.PerformExpression(this.variables, condition_expression);
-
-                // If false, skip to when we reach `ELSE` case
-                if (result.BOOLEAN == false)
-                {
-                    // Skip the lines till we hit 'ELSE'
-                    bool endHit = false;
-
-                    string _l;
-                    while (!(_l = GetNextLine()).Contains("ELSE")) 
-                    {
-                        if (_l.StartsWith("IF"))
-                            IfDepth++;
-
-                        if (_l.Contains("END IF")) 
-                        { 
-                            endHit = true; IfDepth--; break; 
-                        } 
-                    }
-
-                    if(!endHit)
-                    if (_l.StartsWith("ELSE IF"))
-                    {
-                        _execute(_l.Trim().Substring(5).Split());
-                    }
-                    else
-                    {
-                        while (IfDepth > 0)
-                        {
-                            _l = GetNextLine();
-                            if (_l == "END IF")
-                                IfDepth--;
-                            else
-                                _execute(_l.Trim().Split());
-                        }
-                    }
-                }
-                else
-                {
-                    // Result is true
-                    string _l;
-                    while (!(_l = GetNextLine()).Contains("ELSE"))
-                    {
-                        if (_l.StartsWith("IF"))
-                        { 
-                            IfDepth++;
-                        }
-
-                        if (_l.Contains("END IF"))
-                        {
-                            IfDepth--; break;
-                        }
-
-                        _execute(_l.Trim().Split());
-                    }
-
-                    if (_l.Contains("END IF"))
-                    {
-                        IfDepth--;
-                    }
-
-                    while (IfDepth > 0)
-                    {
-                        _l = GetNextLine();
-
-                        if (_l == "END IF")
-                            IfDepth--;
-                    }
-                }
-
-                if (IfDepth > 0)
-                    Error($"UNRESOLVED BALANCE IN IF STATEMENT - MISSING END IF OR CALCUATION PROBLEM WITH INTERPRETER", expression);
-
-            }
-
-         */
-        #endregion
 
         private bool ifJumpOutClause = false;
         private int ifJumpDepth = 0;
